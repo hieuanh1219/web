@@ -1,0 +1,30 @@
+{
+  "name": "web-bds-01",
+  "version": "1.0.0",
+  "description": "��m\u0000a\u0000i\u0000n\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000�! \u0000c\u0000o\u0000d\u0000e\u0000 \u0000�\u001en\u0000 \u0000\u0011\u0001�\u001en\u0000h\u0000\r\u0000 \u0000d\u0000e\u0000v\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000�! \u0000t\u0000�\u0000c\u0000h\u0000 \u0000h\u0000�\u001ep\u0000\r\u0000 \u0000f\u0000e\u0000a\u0000t\u0000u\u0000r\u0000e\u0000/\u0000.\u0000.\u0000.\u0000 \u0000�! \u0000t\u0000�\u001en\u0000g\u0000 \u0000c\u0000h\u0000�\u001ec\u0000 \u0000n\u0000\u0003\u0001n\u0000g\u0000",
+  "homepage": "https://github.com/tuanyeuem/web-bds-01#readme",
+  "bugs": {
+    "url": "https://github.com/tuanyeuem/web-bds-01/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuanyeuem/web-bds-01.git"
+  },
+  "license": "ISC",
+  "author": "Tung",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "nodemon --inspect index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
