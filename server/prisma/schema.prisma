@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleCode {
+  ADMIN
+  EDITOR
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roles            UserRole[]
+  properties       Property[]       @relation("UserProperties")
+  moderatedReviews PropertyReview[] @relation("UserModeratedReviews")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  code      RoleCode @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+enum PropertyStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum ReviewAction {
+  APPROVE
+  REJECT
+}
+
+model PropertyType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  properties Property[]
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  parent     Location?  @relation("LocationTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children   Location[] @relation("LocationTree")
+  properties Property[]
+}
+
+model Property {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String? @db.LongText
+
+  price     Decimal? @db.Decimal(18, 2)
+  area      Decimal? @db.Decimal(10, 2)
+  bedrooms  Int?
+  bathrooms Int?
+
+  address   String?
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  status      PropertyStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  locationId String?
+  typeId     String?
+
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User          @relation("UserProperties", fields: [authorId], references: [id], onDelete: Restrict)
+  location Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  type     PropertyType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+
+  images  PropertyImage[]
+  reviews PropertyReview[]
+
+  @@index([status, createdAt])
+  @@index([authorId])
+  @@index([locationId])
+  @@index([typeId])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, sortOrder])
+}
+
+model PropertyReview {
+  id          String       @id @default(cuid())
+  propertyId  String
+  moderatorId String
+  action      ReviewAction
+  note        String?      @db.LongText
+  createdAt   DateTime     @default(now())
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  moderator User     @relation("UserModeratedReviews", fields: [moderatorId], references: [id], onDelete: Restrict)
+
+  @@index([propertyId, createdAt])
+  @@index([moderatorId])
+}
