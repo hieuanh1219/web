@@ -184,6 +184,7 @@ async function main() {
     upsertAmenity("Gần trường học"),
     upsertAmenity("Gần chợ"),
   ]);
+  const amenityMap = Object.fromEntries(amenities.map(a => [a.slug, a]));
 
   // 7) Tags
   const tags = await Promise.all([
@@ -193,6 +194,7 @@ async function main() {
     upsertTag("Chính chủ"),
     upsertTag("Có sổ"),
   ]);
+  const tagMap = Object.fromEntries(tags.map(t => [t.slug, t]));
 
   // 8) Posts / News
   const catMarket = await upsertPostCategory("Thị trường");
@@ -257,12 +259,9 @@ async function main() {
     },
   });
 
-// gắn tags cho posts (safe)
-const tagMap = Object.fromEntries(tags.map((t) => [t.slug, t]));
-
 // fallback nếu vì lý do nào đó tags chưa có
-const tagHot = tagMap["hot"] || (await upsertTag("Hot"));
-const tagMoiDang = tagMap["moi-dang"] || (await upsertTag("Mới đăng"));
+const tagHot = tagMap["hot"] ?? await upsertTag("Hot");
+const tagMoiDang = tagMap["moi-dang"] ?? await upsertTag("Mới đăng");
 
 await prisma.postTag.upsert({
   where: { postId_tagId: { postId: post1.id, tagId: tagHot.id } },
@@ -275,6 +274,7 @@ await prisma.postTag.upsert({
   update: {},
   create: { postId: post2.id, tagId: tagMoiDang.id },
 });
+
 
 
   // 9) Pages
@@ -371,7 +371,7 @@ await prisma.postTag.upsert({
     // tags relation
     await prisma.propertyTag.deleteMany({ where: { propertyId: prop.id } });
     for (const s of tagSlugs) {
-      const t = tags.find((x) => x.slug === s);
+      const t = tagMap[s];
       if (!t) continue;
       await prisma.propertyTag.create({
         data: { propertyId: prop.id, tagId: t.id },

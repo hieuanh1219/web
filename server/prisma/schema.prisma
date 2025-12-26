@@ -12,9 +12,9 @@ datasource db {
 //
 enum RoleCode {
   ADMIN
-  EDITOR
-  MODERATOR
-}
+  SUPER_ADMIN
+  }
+
 
 enum UserStatus {
   ACTIVE
@@ -87,10 +87,10 @@ model User {
   avatarUrl    String?
   status       UserStatus @default(ACTIVE)
 
+  role         RoleCode   @default(ADMIN)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  roles UserRole[]
 
   // Content ownership
   properties Property[] @relation("UserProperties")
@@ -99,35 +99,15 @@ model User {
   // Moderation
   moderatedReviews PropertyReview[] @relation("UserModeratedReviews")
 
-  // Leads assigned (optional CRM-lite)
+  // Leads assigned
   assignedLeads Lead[] @relation("LeadAssignee")
 
-  // Agent profile (optional)
+  // Agent profile
   agentProfile AgentProfile?
 
+  @@index([role])
   @@index([status, createdAt])
 }
-
-model Role {
-  id        String   @id @default(cuid())
-  code      RoleCode @unique
-  name      String
-  createdAt DateTime @default(now())
-
-  users UserRole[]
-}
-
-model UserRole {
-  userId String
-  roleId String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@id([userId, roleId])
-  @@index([roleId])
-}
-
 model AgentProfile {
   id       String  @id @default(cuid())
   userId   String  @unique

@@ -1,20 +1,16 @@
 const { z } = require("zod");
 
-const loginSchema = z.object({
+const loginSchema = {
   body: z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
+    email: z.string().email("Email không hợp lệ"),
+    password: z.string().min(6, "Password tối thiểu 6 ký tự"),
   }),
-  query: z.any().optional(),
-  params: z.any().optional(),
-});
+};
 
-const refreshSchema = z.object({
+const refreshSchema = {
   body: z.object({
-    refreshToken: z.string().min(10),
+    refreshToken: z.string().min(1, "refreshToken là bắt buộc"),
   }),
-  query: z.any().optional(),
-  params: z.any().optional(),
-});
+};
 
 module.exports = { loginSchema, refreshSchema };

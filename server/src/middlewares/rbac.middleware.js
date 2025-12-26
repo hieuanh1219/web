@@ -1,10 +1,30 @@
-function requireRoles(...allowed) {
+const { permissions } = require("../constants/permissions");
+
+function can(resource, action) {
   return (req, res, next) => {
-    const roles = req.user?.roles || [];
-    const ok = roles.some((r) => allowed.includes(r));
-    if (!ok) return res.status(403).json({ message: "Forbidden" });
+    const role = req.user?.role;
+
+    if (!role) {
+      return res.status(401).json({ message: "Unauthenticated" });
+    }
+
+    const rolePermissions = permissions[role];
+    if (!rolePermissions) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    // SuperAdmin
+    if (rolePermissions["*"]?.includes("*")) {
+      return next();
+    }
+
+    const allowedActions = rolePermissions[resource] || [];
+    if (!allowedActions.includes(action)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     next();
   };
 }
 
-module.exports = { requireRoles };
+module.exports = { can };

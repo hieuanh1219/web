@@ -14,19 +14,16 @@ class BadRequestError extends AppError {
     super(message, 400, "BAD_REQUEST", details);
   }
 }
-
 class UnauthorizedError extends AppError {
   constructor(message = "Unauthorized", details = null) {
     super(message, 401, "UNAUTHORIZED", details);
   }
 }
-
 class ForbiddenError extends AppError {
   constructor(message = "Forbidden", details = null) {
     super(message, 403, "FORBIDDEN", details);
   }
 }
-
 class NotFoundError extends AppError {
   constructor(message = "Not Found", details = null) {
     super(message, 404, "NOT_FOUND", details);
