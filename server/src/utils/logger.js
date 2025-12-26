@@ -6,7 +6,7 @@ function createLogger() {
   return pino(
     {
       level: process.env.LOG_LEVEL || (isProd ? "info" : "debug"),
-      base: null, // bỏ pid/hostname cho gọn (tuỳ bạn)
+      base: null,
     },
     isProd
       ? undefined

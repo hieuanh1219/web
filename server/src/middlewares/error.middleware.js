@@ -1,5 +1,5 @@
 const { NotFoundError, AppError } = require("../utils/errors");
-
+//console.error("STACKTRACE:\n", err?.stack);
 function notFound(req, res, next) {
   next(new NotFoundError(`Route not found: ${req.method} ${req.originalUrl}`));
 }

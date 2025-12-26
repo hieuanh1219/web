@@ -1,22 +1,22 @@
 const authService = require("../services/auth.service");
 
-async function login(req, res) {
+async function login(req, res, next) {
   try {
-    const { email, password } = req.validated.body;
-    const data = await authService.login(email, password);
-    res.json(data);
+    const { email, password } = req.body;
+    const result = await authService.login(email, password);
+    return res.json(result);
   } catch (e) {
-    res.status(400).json({ message: e.message || "Login failed" });
+    return next(e);
   }
 }
 
-async function refresh(req, res) {
+async function refresh(req, res, next) {
   try {
-    const { refreshToken } = req.validated.body;
-    const data = await authService.refresh(refreshToken);
-    res.json(data);
+    const { refreshToken } = req.body;
+    const result = await authService.refresh(refreshToken);
+    return res.json(result);
   } catch (e) {
-    res.status(401).json({ message: e.message || "Refresh failed" });
+    return next(e);
   }
 }
 
