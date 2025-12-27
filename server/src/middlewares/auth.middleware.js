@@ -1,37 +1,57 @@
-const prisma = require("../db/prisma");
 const jwt = require("jsonwebtoken");
+const prisma = require("../db/prisma");
 
-async function requireAuth(req, res, next) {
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error("JWT_SECRET is missing");
+
+function unauthorized(res, message = "Unauthorized") {
+  return res.status(401).json({ message });
+}
+
+exports.requireAuth = async (req, res, next) => {
   try {
-    const header = req.headers.authorization || "";
-    const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+    // 1) Header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return unauthorized(res, "Missing Authorization header");
 
-    if (!token) {
-      return res.status(401).json({ message: "Missing token" });
+    // 2) Bearer token
+    const [scheme, token] = authHeader.split(" ");
+    if (scheme !== "Bearer" || !token) {
+      return unauthorized(res, "Invalid Authorization format");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // 3) Verify token
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return unauthorized(res, "Invalid or expired token");
+    }
 
-    // decoded = { id, role, iat, exp }
+    // 4) Payload tối thiểu
+    if (!payload.sub) {
+      return unauthorized(res, "Invalid token payload");
+    }
+
+    // 5) Check user tồn tại
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: payload.sub },
+      select: { id: true, email: true, role: true, status: true },
     });
 
     if (!user || user.status !== "ACTIVE") {
-      return res.status(401).json({ message: "Unauthorized" });
+      return unauthorized(res);
     }
 
+    // 6) Gắn user
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
     };
 
-    next();
-  } catch (e) {
-    console.error("AUTH ERROR:", e.message);
-    return res.status(401).json({ message: "Invalid token" });
+    return next();
+  } catch (err) {
+    return unauthorized(res, "Invalid token");
   }
-}
-
-module.exports = { requireAuth };
+};

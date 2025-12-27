@@ -3,13 +3,21 @@ const router = require("express").Router();
 const { requireAuth } = require("../middlewares/auth.middleware");
 const { can } = require("../middlewares/rbac.middleware");
 const { RESOURCES, ACTIONS } = require("../constants");
+const {
+  getProperties,
+  getPropertyBySlug,
+} = require("../controllers/property.public.controller");
 
 // test ping
 router.get("/__ping", (req, res) => {
   res.json({ ok: true, route: "properties" });
 });
 
-// t·∫°o BƒêS (ADMIN / SUPER_ADMIN)
+// public
+router.get("/", getProperties);
+router.get("/:slug", getPropertyBySlug);
+
+// t ß≠o Bé?S (ADMIN / SUPER_ADMIN)
 router.post(
   "/admin",
   requireAuth,

@@ -1,263 +1,199 @@
-/* eslint-disable no-console */
+require("dotenv").config();
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
-function slugify(str) {
-  return String(str || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-async function upsertUser({ email, password, role, name }) {
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  return prisma.user.upsert({
-    where: { email },
-    update: {
-      name,
-      role,
-     
-      passwordHash,
-      status: "ACTIVE",
-    },
-    create: {
-      email,
-      passwordHash,
-      name,
-      role,
-      status: "ACTIVE",
-    },
-  });
-}
-
 async function main() {
   console.log("🌱 Seeding...");
 
-  // 1) USERS
-  const superAdmin = await upsertUser({
-    email: "superadmin@local.dev",
-    password: "SuperAdmin@123",
-    role: "SUPER_ADMIN",
-    name: "Super Admin",
+  /* =====================
+     USERS
+  ===================== */
+  const superAdminPassword = await bcrypt.hash("SuperAdmin@123", 10);
+  const adminPassword = await bcrypt.hash("Admin@123", 10);
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: "superadmin@local.dev" },
+    update: {},
+    create: {
+      email: "superadmin@local.dev",
+      passwordHash: superAdminPassword,
+      name: "Super Admin",
+      role: "SUPER_ADMIN",
+    },
   });
 
-  const admin = await upsertUser({
-    email: "admin@local.dev",
-    password: "Admin@123",
-    role: "ADMIN",
-    name: "Admin",
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@local.dev" },
+    update: {},
+    create: {
+      email: "admin@local.dev",
+      passwordHash: adminPassword,
+      name: "Admin User",
+      role: "ADMIN",
+    },
   });
 
-  console.log("✅ Users:", { superAdmin: superAdmin.email, admin: admin.email });
-
-  // 2) LOCATION (tree)
-  const hn = await prisma.location.upsert({
-    where: { slug: "ha-noi" },
-    update: { name: "Hà Nội" },
-    create: { name: "Hà Nội", slug: "ha-noi" },
+  /* =====================
+     LOCATION
+  ===================== */
+  const binhDinh = await prisma.location.upsert({
+    where: { slug: "binh-dinh" },
+    update: {},
+    create: {
+      name: "Bình Định",
+      slug: "binh-dinh",
+    },
   });
 
-  const cauGiay = await prisma.location.upsert({
-    where: { slug: "cau-giay" },
-    update: { name: "Cầu Giấy", parentId: hn.id },
-    create: { name: "Cầu Giấy", slug: "cau-giay", parentId: hn.id },
+  const quyNhon = await prisma.location.upsert({
+    where: { slug: "quy-nhon" },
+    update: {},
+    create: {
+      name: "Quy Nhơn",
+      slug: "quy-nhon",
+      parentId: binhDinh.id,
+    },
   });
 
-  // 3) PROPERTY TYPE
-  const apartment = await prisma.propertyType.upsert({
-    where: { name: "Căn hộ" },
-    update: { slug: "can-ho" },
-    create: { name: "Căn hộ", slug: "can-ho" },
-  });
-
-  const house = await prisma.propertyType.upsert({
+  /* =====================
+     PROPERTY TYPE
+  ===================== */
+  const nhaPho = await prisma.propertyType.upsert({
     where: { name: "Nhà phố" },
-    update: { slug: "nha-pho" },
-    create: { name: "Nhà phố", slug: "nha-pho" },
-  });
-
-  // 4) AMENITIES
-  const amenityNames = ["Bãi đỗ xe", "Thang máy", "Bảo vệ 24/7", "Gần trường học"];
-  const amenities = [];
-  for (const n of amenityNames) {
-    const a = await prisma.amenity.upsert({
-      where: { name: n },
-      update: { slug: slugify(n) },
-      create: { name: n, slug: slugify(n) },
-    });
-    amenities.push(a);
-  }
-
-  // 5) TAGS
-  const tagInputs = ["giá tốt", "trung tâm", "sổ đỏ", "full nội thất"];
-  const tags = [];
-  for (const t of tagInputs) {
-    const tg = await prisma.tag.upsert({
-      where: { slug: slugify(t) },
-      update: { name: t },
-      create: { name: t, slug: slugify(t) },
-    });
-    tags.push(tg);
-  }
-
-  // 6) POST CATEGORY + POST
-  const cat = await prisma.postCategory.upsert({
-    where: { slug: "kien-thuc-bds" },
-    update: { name: "Kiến thức BĐS" },
-    create: { name: "Kiến thức BĐS", slug: "kien-thuc-bds" },
-  });
-
-  const postSlug = "huong-dan-mua-nha-lan-dau";
-  const post = await prisma.post.upsert({
-    where: { slug: postSlug },
-    update: {
-      title: "Hướng dẫn mua nhà lần đầu (Demo)",
-      content: "Nội dung demo để test CMS...",
-      status: "PUBLISHED",
-      authorId: admin.id,
-      categoryId: cat.id,
-      publishedAt: new Date(),
-    },
+    update: {},
     create: {
-      title: "Hướng dẫn mua nhà lần đầu (Demo)",
-      slug: postSlug,
-      excerpt: "Bài viết demo cho hệ thống CMS.",
-      content: "Nội dung demo để test CMS...",
-      coverUrl: "https://picsum.photos/seed/post-cover/1200/630",
-      status: "PUBLISHED",
-      authorId: admin.id,
-      categoryId: cat.id,
-      publishedAt: new Date(),
+      name: "Nhà phố",
+      slug: "nha-pho",
     },
   });
 
-  // gắn tag cho post (many-to-many qua PostTag)
-  for (const tg of tags.slice(0, 2)) {
-    await prisma.postTag.upsert({
-      where: { postId_tagId: { postId: post.id, tagId: tg.id } },
-      update: {},
-      create: { postId: post.id, tagId: tg.id },
-    });
-  }
+  /* =====================
+     AMENITY
+  ===================== */
+  const ganBien = await prisma.amenity.upsert({
+    where: { name: "Gần biển" },
+    update: {},
+    create: {
+      name: "Gần biển",
+      slug: "gan-bien",
+    },
+  });
 
-  // 7) PROPERTY + relations
-  const propertySlug = "can-ho-cau-giay-2pn-demo";
+  /* =====================
+     TAG
+  ===================== */
+  const hotTag = await prisma.tag.upsert({
+    where: { slug: "hot" },
+    update: {},
+    create: {
+      name: "Hot",
+      slug: "hot",
+    },
+  });
+
+  /* =====================
+     PROPERTY
+  ===================== */
   const property = await prisma.property.upsert({
-    where: { slug: propertySlug },
-    update: {
-      title: "Căn hộ Cầu Giấy 2PN (Demo)",
-      description: "Căn hộ demo để test listing.",
+    where: { slug: "nha-pho-quy-nhon-demo" },
+    update: {},
+    create: {
+      title: "Nhà phố Quy Nhơn (Demo)",
+      slug: "nha-pho-quy-nhon-demo",
+      description: "Nhà phố trung tâm Quy Nhơn, demo cho BE-1",
       transactionType: "SALE",
+      price: 2500000000,
       currency: "VND",
-      price: "3500000000", // Decimal: có thể truyền string
-      area: "75.5",
-      bedrooms: 2,
+      area: 80,
+      bedrooms: 3,
       bathrooms: 2,
-      address: "Cầu Giấy, Hà Nội",
+      address: "Quy Nhơn, Bình Định",
       status: "PUBLISHED",
       publishedAt: new Date(),
-      locationId: cauGiay.id,
-      typeId: apartment.id,
       authorId: admin.id,
+      locationId: quyNhon.id,
+      typeId: nhaPho.id,
     },
+  });
+
+  await prisma.propertyAmenity.upsert({
+    where: {
+      propertyId_amenityId: {
+        propertyId: property.id,
+        amenityId: ganBien.id,
+      },
+    },
+    update: {},
     create: {
-      title: "Căn hộ Cầu Giấy 2PN (Demo)",
-      slug: propertySlug,
-      description: "Căn hộ demo để test listing.",
-      transactionType: "SALE",
-      currency: "VND",
-      price: "3500000000",
-      area: "75.5",
-      bedrooms: 2,
-      bathrooms: 2,
-      address: "Cầu Giấy, Hà Nội",
+      propertyId: property.id,
+      amenityId: ganBien.id,
+    },
+  });
+
+  await prisma.propertyTag.upsert({
+    where: {
+      propertyId_tagId: {
+        propertyId: property.id,
+        tagId: hotTag.id,
+      },
+    },
+    update: {},
+    create: {
+      propertyId: property.id,
+      tagId: hotTag.id,
+    },
+  });
+
+  /* =====================
+     POST + CATEGORY
+  ===================== */
+  const newsCategory = await prisma.postCategory.upsert({
+    where: { slug: "tin-tuc" },
+    update: {},
+    create: {
+      name: "Tin tức",
+      slug: "tin-tuc",
+    },
+  });
+
+  await prisma.post.upsert({
+    where: { slug: "gioi-thieu-du-an-demo" },
+    update: {},
+    create: {
+      title: "Giới thiệu dự án demo",
+      slug: "gioi-thieu-du-an-demo",
+      excerpt: "Bài viết demo cho hệ thống CMS",
+      content: "Nội dung demo. Sau này sẽ thay bằng CMS thật.",
       status: "PUBLISHED",
       publishedAt: new Date(),
-      locationId: cauGiay.id,
-      typeId: apartment.id,
       authorId: admin.id,
+      categoryId: newsCategory.id,
     },
   });
 
-  // Images (xóa cũ rồi tạo lại cho gọn)
-  await prisma.propertyImage.deleteMany({ where: { propertyId: property.id } });
-  await prisma.propertyImage.createMany({
-    data: [
-      {
-        propertyId: property.id,
-        url: "https://picsum.photos/seed/p1/1200/800",
-        alt: "Ảnh 1",
-        sortOrder: 0,
-      },
-      {
-        propertyId: property.id,
-        url: "https://picsum.photos/seed/p2/1200/800",
-        alt: "Ảnh 2",
-        sortOrder: 1,
-      },
-    ],
-  });
-
-  // Features
-  await prisma.propertyFeature.deleteMany({ where: { propertyId: property.id } });
-  await prisma.propertyFeature.createMany({
-    data: [
-      { propertyId: property.id, key: "legal", value: "Sổ đỏ lâu dài" },
-      { propertyId: property.id, key: "direction", value: "Đông Nam" },
-      { propertyId: property.id, key: "furniture", value: "Full nội thất" },
-    ],
-  });
-
-  // Amenities link
-  await prisma.propertyAmenity.deleteMany({ where: { propertyId: property.id } });
-  await prisma.propertyAmenity.createMany({
-    data: amenities.slice(0, 3).map((a) => ({
-      propertyId: property.id,
-      amenityId: a.id,
-    })),
-  });
-
-  // Tags link
-  await prisma.propertyTag.deleteMany({ where: { propertyId: property.id } });
-  await prisma.propertyTag.createMany({
-    data: tags.slice(0, 3).map((t) => ({
-      propertyId: property.id,
-      tagId: t.id,
-    })),
-  });
-
-  // 8) PAGE + SETTINGS
-  await prisma.page.upsert({
-    where: { slug: "about" },
-    update: { title: "Về chúng tôi", content: "Nội dung demo trang About", isPublished: true },
-    create: {
-      title: "Về chúng tôi",
-      slug: "about",
-      content: "Nội dung demo trang About",
-      isPublished: true,
-    },
-  });
-
+  /* =====================
+     SETTINGS
+  ===================== */
   await prisma.setting.upsert({
     where: { key: "site_name" },
-    update: { value: "WEB-BDS-01" },
-    create: { key: "site_name", value: "WEB-BDS-01" },
+    update: {},
+    create: {
+      key: "site_name",
+      value: "Web BĐS Demo",
+    },
   });
 
-  console.log("✅ Seed done.");
+  console.log("✅ Seed done");
+  console.log("Super Admin: superadmin@local.dev / SuperAdmin@123");
+  console.log("Admin: admin@local.dev / Admin@123");
 }
 
 main()
   .catch((e) => {
     console.error("❌ Seed error:", e);
-    process.exitCode = 1;
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

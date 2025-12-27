@@ -1,14 +1,13 @@
-function httpLogger(logger) {
+function httpLogger() {
   return (req, res, next) => {
     const start = Date.now();
 
     res.on("finish", () => {
       const ms = Date.now() - start;
-      logger.info(
+
+      // Log tổng kết request
+      req.log.info(
         {
-          requestId: req.requestId,
-          method: req.method,
-          path: req.originalUrl,
           statusCode: res.statusCode,
           ms,
         },
