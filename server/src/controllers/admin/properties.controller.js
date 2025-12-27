@@ -196,9 +196,10 @@ exports.createAdminProperty = async (req, res) => {
     return res.status(201).json({ message: "Created", item });
   } catch (err) {
     console.error("[createAdminProperty]", err);
-    return res.status(500).json({ message: "Internal server error" });
+    return next(err);
   }
 };
+
 
 exports.updateAdminProperty = async (req, res) => {
   try {

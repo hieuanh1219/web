@@ -192,6 +192,7 @@ model PropertyTag {
 
   @@id([propertyId, tagId])
   @@index([tagId])
+  @@index([propertyId])
 }
 
 //
@@ -256,11 +257,20 @@ model Property {
   tags      PropertyTag[]
   leads     Lead[]
 
-  @@index([status, createdAt])
-  @@index([transactionType, status])
+  //@@index([status, createdAt])
+  //@@index([transactionType, status])
   @@index([authorId])
   @@index([locationId])
   @@index([typeId])
+  @@index([status, title])
+  @@index([status, address])
+  @@index([status, createdAt])
+  @@index([status, publishedAt])
+  @@index([status, price])
+  @@index([status, area])
+  @@index([status, locationId])
+  @@index([status, typeId])
+  @@index([transactionType, status])
 }
 
 model PropertyImage {

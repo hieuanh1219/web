@@ -1,38 +1,10 @@
+// src/controllers/property.public.controller.js
 const prisma = require("../db/prisma");
+const { getCache, setCache } = require("../utils/cache");
 
-// -------- helpers --------
-function toNumber(v) {
-  if (v === undefined || v === null || v === "") return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function toInt(v) {
-  if (v === undefined || v === null || v === "") return undefined;
-  const n = parseInt(v, 10);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function clampInt(value, { min, max, fallback }) {
-  const n = parseInt(value, 10);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(min, Math.min(max, n));
-}
-
-function parseCsv(v) {
-  if (!v) return [];
-  return String(v)
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
-function parseBool(v, defaultValue = true) {
-  if (v === undefined || v === null || v === "") return defaultValue;
-  const s = String(v).toLowerCase().trim();
-  return ["1", "true", "yes", "y", "on"].includes(s);
-}
-
+// =========================
+// helpers
+// =========================
 function buildOrderBy(sort) {
   switch (sort) {
     case "createdAt_asc":
@@ -51,7 +23,28 @@ function buildOrderBy(sort) {
   }
 }
 
-// -------- location helpers --------
+// normalize q cho tiếng Việt: lower, trim, collapse spaces, remove punctuation nhẹ
+function normalizeQueryText(input) {
+  if (!input) return "";
+  return String(input)
+    .trim()
+    .toLowerCase()
+    .replace(/[“”‘’"'`]/g, "")        // bỏ quote
+    .replace(/[.,;:!?()[\]{}<>]/g, " ") // dấu câu -> space
+    .replace(/\s+/g, " ")            // gộp spaces
+    .trim();
+}
+
+// tách terms + lọc terms ngắn (1 ký tự) để giảm noise
+function splitTerms(q) {
+  const s = normalizeQueryText(q);
+  if (!s) return [];
+  return s
+    .split(" ")
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2); // >=2 ký tự
+}
+
 async function getLocationIdBySlug(slug) {
   const loc = await prisma.location.findFirst({
     where: { slug },
@@ -83,63 +76,72 @@ async function getLocationTreeIds(rootId) {
   return Array.from(ids);
 }
 
+async function getLocationTreeIdsCached(rootId) {
+  const key = `locTree:${rootId}`;
+  const hit = getCache(key);
+  if (hit) return hit;
+
+  const ids = await getLocationTreeIds(rootId);
+  setCache(key, ids, 10 * 60 * 1000);
+  return ids;
+}
+
+async function resolveTagIdsBySlugsCached(tagSlugs) {
+  const key = `tagSlugs:${[...tagSlugs].sort().join(",")}`;
+  const hit = getCache(key);
+  if (hit) return hit;
+
+  const tags = await prisma.tag.findMany({
+    where: { slug: { in: tagSlugs } },
+    select: { id: true },
+  });
+
+  const ids = tags.map((t) => t.id);
+  setCache(key, ids, 10 * 60 * 1000);
+  return ids;
+}
+
 // =========================
-// GET /properties
+// GET /api/properties
 // =========================
 exports.getProperties = async (req, res, next) => {
   try {
-    // ✅ paging
-    const page = clampInt(req.query.page, { min: 1, max: 1000000, fallback: 1 });
-    const limit = clampInt(req.query.limit, { min: 1, max: 50, fallback: 12 });
-    const skip = (page - 1) * limit;
+    const qn = req.queryNormalized || {};
 
-    const all = String(req.query.all || "").toLowerCase() === "true";
+    const {
+      page,
+      limit,
+      all,
+      sort,
+      match,
+
+      q,
+      typeId,
+      transactionType,
+
+      priceMin,
+      priceMax,
+      areaMin,
+      areaMax,
+      bedroomsMin,
+      bathroomsMin,
+
+      locationId,
+      locationSlug,
+      includeChildren,
+
+      tagIds,
+      tagSlugs,
+      tagsMode,
+    } = qn;
+
     const take = all ? 100000 : limit;
-    const skip2 = all ? 0 : skip;
+    const skip = all ? 0 : (page - 1) * limit;
 
-    // ✅ match mode
-    const match = (req.query.match || "all").toString().toLowerCase(); // all|any
-
-    // ✅ filters
-    const q = (req.query.q || "").toString().trim();
-
-    const typeId = req.query.typeId || undefined;
-    const transactionType = req.query.transactionType || undefined;
-
-    const priceMin = toNumber(req.query.priceMin);
-    const priceMax = toNumber(req.query.priceMax);
-    const areaMin = toNumber(req.query.areaMin);
-    const areaMax = toNumber(req.query.areaMax);
-
-    const bedroomsMin = toInt(req.query.bedroomsMin);
-    const bathroomsMin = toInt(req.query.bathroomsMin);
-
-    // ✅ location by id OR slug
-    const locationId = req.query.locationId || undefined;
-    const locationSlug = (req.query.locationSlug || "").toString().trim() || undefined;
-    const includeChildren = parseBool(req.query.includeChildren, true);
-
-    // ✅ tags
-    const tagIds = parseCsv(req.query.tagIds);
-    const tagSlugs = parseCsv(req.query.tagSlugs);
-    const tagsMode = (req.query.tagsMode || "any").toString().toLowerCase(); // any|all
-
-    // ✅ validate
-    if (priceMin !== undefined && priceMax !== undefined && priceMin > priceMax) {
-      return res.status(400).json({ message: "priceMin must be <= priceMax" });
-    }
-    if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
-      return res.status(400).json({ message: "areaMin must be <= areaMax" });
-    }
-
-    // ✅ where base
     const where = { status: "PUBLISHED" };
 
-    // =========================
-    // 1) Build match conds (only for numeric/text filters)
-    // =========================
+    // 1) match conds (numeric/text filters)
     const filterConds = [];
-
     if (typeId) filterConds.push({ typeId });
     if (transactionType) filterConds.push({ transactionType });
 
@@ -160,17 +162,23 @@ exports.getProperties = async (req, res, next) => {
     if (bedroomsMin !== undefined) filterConds.push({ bedrooms: { gte: bedroomsMin } });
     if (bathroomsMin !== undefined) filterConds.push({ bathrooms: { gte: bathroomsMin } });
 
-    if (q) {
-      filterConds.push({
+    // ✅ NEW: normalize q -> terms -> AND từng term (chất lượng search tốt hơn)
+    const terms = splitTerms(q);
+    if (terms.length > 0) {
+      // mỗi term phải match ít nhất 1 field (title/description/address)
+      const termAnd = terms.map((t) => ({
         OR: [
-          { title: { contains: q } },
-          { description: { contains: q } },
-          { address: { contains: q } },
+          { title: { contains: t } },
+          { description: { contains: t } },
+          { address: { contains: t } },
         ],
-      });
+      }));
+
+      filterConds.push({ AND: termAnd });
     }
 
-    // ✅ Apply match: any = OR, all = AND
+    // Apply match: any => OR, all => AND
+    // Lưu ý: q đã được đưa vào filterConds theo dạng AND (chất lượng tốt hơn)
     if (filterConds.length > 0) {
       if (match === "any") {
         where.AND = [...(where.AND || []), { OR: filterConds }];
@@ -179,9 +187,7 @@ exports.getProperties = async (req, res, next) => {
       }
     }
 
-    // =========================
-    // 2) Location (always AND)
-    // =========================
+    // 2) location (always AND)
     let effectiveLocationId = locationId;
     if (!effectiveLocationId && locationSlug) {
       effectiveLocationId = await getLocationIdBySlug(locationSlug);
@@ -189,32 +195,27 @@ exports.getProperties = async (req, res, next) => {
         return res.json({
           items: [],
           paging: all ? { all: true, total: 0 } : { page, limit, total: 0, totalPages: 0 },
-          applied: { all, match, locationSlug, includeChildren },
+          applied: { ...qn, qNormalized: normalizeQueryText(q), qTerms: terms },
         });
       }
     }
 
     if (effectiveLocationId) {
       if (includeChildren) {
-        const ids = await getLocationTreeIds(effectiveLocationId);
+        const ids = await getLocationTreeIdsCached(effectiveLocationId);
         where.locationId = { in: ids };
       } else {
         where.locationId = effectiveLocationId;
       }
     }
 
-    // =========================
-    // 3) Tags (always AND)
-    // =========================
-    if (tagIds.length > 0 || tagSlugs.length > 0) {
-      let resolvedTagIds = tagIds;
+    // 3) tags (always AND)
+    if ((tagIds?.length || 0) > 0 || (tagSlugs?.length || 0) > 0) {
+      let resolvedTagIds = tagIds || [];
 
-      if (tagSlugs.length > 0) {
-        const tags = await prisma.tag.findMany({
-          where: { slug: { in: tagSlugs } },
-          select: { id: true },
-        });
-        resolvedTagIds = Array.from(new Set([...resolvedTagIds, ...tags.map((t) => t.id)]));
+      if ((tagSlugs?.length || 0) > 0) {
+        const idsFromSlugs = await resolveTagIdsBySlugsCached(tagSlugs);
+        resolvedTagIds = Array.from(new Set([...resolvedTagIds, ...idsFromSlugs]));
       }
 
       if (resolvedTagIds.length > 0) {
@@ -229,63 +230,72 @@ exports.getProperties = async (req, res, next) => {
       }
     }
 
-    // ✅ sort
-    const sort = req.query.sort || "createdAt_desc";
     const orderBy = buildOrderBy(sort);
 
-    // ✅ query
-    console.log("DEBUG all =", all, "take =", take, "skip2 =", skip2);
-console.log("DEBUG where =", JSON.stringify(where, null, 2));
-console.log("DEBUG orderBy =", JSON.stringify(orderBy, null, 2));
+    const listSelect = {
+      id: true,
+      title: true,
+      slug: true,
+      transactionType: true,
+      currency: true,
+      price: true,
+      area: true,
+      bedrooms: true,
+      bathrooms: true,
+      address: true,
+      createdAt: true,
+      publishedAt: true,
+      location: { select: { id: true, name: true, slug: true } },
+      type: { select: { id: true, name: true, slug: true } },
+      images: {
+        orderBy: { sortOrder: "asc" },
+        take: 1,
+        select: { id: true, url: true, alt: true },
+      },
+    };
 
+    // ✅ all=true => bỏ count
+    if (all) {
+      const items = await prisma.property.findMany({
+        where,
+        orderBy,
+        skip,
+        take,
+        select: listSelect,
+      });
+
+      return res.json({
+        items,
+        paging: { all: true, total: items.length },
+        applied: { ...qn, qNormalized: normalizeQueryText(q), qTerms: terms },
+      });
+    }
+
+    // ✅ paging thường => count
     const [items, total] = await prisma.$transaction([
       prisma.property.findMany({
         where,
         orderBy,
-        skip: skip2,
+        skip,
         take,
-        include: {
-          images: { orderBy: { sortOrder: "asc" } },
-          location: true,
-          type: true,
-          tags: { include: { tag: true } },
-        },
+        select: listSelect,
       }),
       prisma.property.count({ where }),
     ]);
 
     return res.json({
       items,
-      paging: all ? { all: true, total } : { page, limit, total, totalPages: Math.ceil(total / limit) },
-      applied: {
-        all,
-        match,
-        q,
-        locationId,
-        locationSlug,
-        effectiveLocationId,
-        includeChildren,
-        typeId,
-        transactionType,
-        priceMin,
-        priceMax,
-        areaMin,
-        areaMax,
-        bedroomsMin,
-        bathroomsMin,
-        tagIds,
-        tagSlugs,
-        tagsMode,
-        sort,
-      },
+      paging: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      applied: { ...qn, qNormalized: normalizeQueryText(q), qTerms: terms },
     });
   } catch (err) {
-    console.error("[getProperties]", err);
-    return next(err);;
+    return next(err);
   }
 };
 
-// GET /properties/:slug
+// =========================
+// GET /api/properties/:slug
+// =========================
 exports.getPropertyBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
@@ -303,7 +313,6 @@ exports.getPropertyBySlug = async (req, res, next) => {
     if (!item) return res.status(404).json({ message: "Not found" });
     return res.json(item);
   } catch (err) {
-    console.error("[getPropertyBySlug]", err);
-    return next(err);;
+    return next(err);
   }
 };
