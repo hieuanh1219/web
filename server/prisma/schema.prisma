@@ -23,9 +23,9 @@ enum UserStatus {
 
 enum PropertyStatus {
   DRAFT
-  PENDING
+  //PENDING
   PUBLISHED
-  REJECTED
+  //REJECTED
   ARCHIVED
 }
 

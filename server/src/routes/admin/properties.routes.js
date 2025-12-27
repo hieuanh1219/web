@@ -1,23 +1,31 @@
-const express = require("express");
-const router = express.Router();
+// Admin endpoints sẽ là:
 
-const ctrl = require("../../controllers/property.workflow.controller");
+// POST /api/admin/properties
+// PUT /api/admin/properties/:id
+// DELETE /api/admin/properties/:id
+// POST /api/admin/properties/:id/publish
+
+const router = require("express").Router();
 const { requireAuth } = require("../../middlewares/auth.middleware");
+const { can } = require("../../middlewares/rbac.middleware");
+const { RESOURCES, ACTIONS } = require("../../constants");
 
-// tất cả đều phải đăng nhập admin
+const ctrl = require("../../controllers/admin/properties.controller");
+
 router.use(requireAuth);
 
-// submit duyệt
-router.post("/:id/submit", ctrl.submitProperty);
+// list + detail (nếu bạn muốn dùng)
+router.get("/", can(RESOURCES.PROPERTY, ACTIONS.READ), ctrl.listAdminProperties);
+router.get("/:id", can(RESOURCES.PROPERTY, ACTIONS.READ), ctrl.getAdminPropertyById);
 
-// approve
-router.post("/:id/approve", ctrl.approveProperty);
+// CRUD
+router.post("/", can(RESOURCES.PROPERTY, ACTIONS.CREATE), ctrl.createAdminProperty);
+router.put("/:id", can(RESOURCES.PROPERTY, ACTIONS.UPDATE), ctrl.updateAdminProperty);
+router.delete("/:id", can(RESOURCES.PROPERTY, ACTIONS.DELETE), ctrl.deleteAdminProperty);
 
-// reject
-router.post("/:id/reject", ctrl.rejectProperty);
-
-// archive
-router.post("/:id/archive", ctrl.archiveProperty);
-router.get("/", (req, res) => res.json({ ok: true, route: "admin/properties" }));
+// publish/archive
+router.post("/:id/publish", can(RESOURCES.PROPERTY, ACTIONS.PUBLISH), ctrl.publishAdminProperty);
+router.post("/:id/unpublish", can(RESOURCES.PROPERTY, ACTIONS.PUBLISH), ctrl.unpublishAdminProperty);
+router.post("/:id/archive", can(RESOURCES.PROPERTY, ACTIONS.ARCHIVE), ctrl.archiveAdminProperty);
 
 module.exports = router;

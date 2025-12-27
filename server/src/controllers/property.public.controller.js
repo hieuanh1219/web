@@ -1,4 +1,4 @@
-const { prisma } = require("../db/prisma");
+const prisma = require("../db/prisma");
 
 // -------- helpers --------
 function toNumber(v) {
@@ -86,7 +86,7 @@ async function getLocationTreeIds(rootId) {
 // =========================
 // GET /properties
 // =========================
-exports.getProperties = async (req, res) => {
+exports.getProperties = async (req, res, next) => {
   try {
     // ✅ paging
     const page = clampInt(req.query.page, { min: 1, max: 1000000, fallback: 1 });
@@ -281,12 +281,12 @@ console.log("DEBUG orderBy =", JSON.stringify(orderBy, null, 2));
     });
   } catch (err) {
     console.error("[getProperties]", err);
-    return res.status(500).json({ message: "Internal server error" });
+    return next(err);;
   }
 };
 
 // GET /properties/:slug
-exports.getPropertyBySlug = async (req, res) => {
+exports.getPropertyBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
 
@@ -304,6 +304,6 @@ exports.getPropertyBySlug = async (req, res) => {
     return res.json(item);
   } catch (err) {
     console.error("[getPropertyBySlug]", err);
-    return res.status(500).json({ message: "Internal server error" });
+    return next(err);;
   }
 };
