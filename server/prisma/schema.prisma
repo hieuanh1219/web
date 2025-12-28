@@ -259,9 +259,9 @@ model Property {
 
   //@@index([status, createdAt])
   //@@index([transactionType, status])
-  @@index([authorId])
-  @@index([locationId])
-  @@index([typeId])
+  //@@index([authorId])
+  //@@index([locationId])
+ // @@index([typeId])
   @@index([status, title])
   @@index([status, address])
   @@index([status, createdAt])

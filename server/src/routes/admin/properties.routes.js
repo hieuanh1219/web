@@ -14,7 +14,7 @@ const ctrl = require("../../controllers/admin/properties.controller");
 
 router.use(requireAuth);
 
-// list + detail (nếu bạn muốn dùng)
+// list + detail
 router.get("/", can(RESOURCES.PROPERTY, ACTIONS.READ), ctrl.listAdminProperties);
 router.get("/:id", can(RESOURCES.PROPERTY, ACTIONS.READ), ctrl.getAdminPropertyById);
 
