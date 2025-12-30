@@ -1,3 +1,22 @@
+# WEB-BDS-01 — API.md (Docs for FE)
+
+Base URL: `http://localhost:4000/api`
+
+Auth type: **Bearer JWT**  
+Header:
+`Authorization: Bearer <accessToken>`
+
+---
+
+## 0) Response Conventions
+
+### Success
+- `200 OK` (GET/PUT/POST actions thông thường)
+- `201 Created` (POST create)
+
+### Error (global format)
+Backend có middleware `errorHandler` trả về:
+```json
 {
   "message": "Route not found: GET /xxx",
   "code": "NOT_FOUND | INTERNAL_ERROR | BAD_REQUEST | ...",
