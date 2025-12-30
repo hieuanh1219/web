@@ -92,21 +92,14 @@ Response 200
 GET /properties
 
 Danh sách tin public (chỉ PUBLISHED).
-
 Endpoint này có validateQuery(propertyListQuerySchema) và backend sẽ chuẩn hoá query thành req.queryNormalized.
-
 Query params (đã chuẩn hoá)
 
 page?: number default 1
-
 limit?: number default 12 (max theo schema, thường 50)
-
 all?: boolean default false
-
 true => backend trả nhiều (take lớn), thường bỏ count
-
 sort?: string default createdAt_desc
-
 createdAt_desc | createdAt_asc | price_asc | price_desc | area_asc | area_desc
 
 match?: string default all
@@ -164,7 +157,7 @@ Response 200 (list item “card”)
   }
 }
 
-Notes for FE
+#Notes for FE
 
 FE nên dùng slug để đi detail.
 Images list endpoint thường chỉ take: 1 (cover).
@@ -242,7 +235,7 @@ GET /admin/properties/:id
 
 Detail theo id (admin).
 
-Headers
+Headers:
 Authorization: Bearer <token>
 
 Response 200

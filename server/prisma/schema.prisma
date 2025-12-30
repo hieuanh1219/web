@@ -1,0 +1,471 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+//
+// ENUMS
+//
+enum RoleCode {
+  ADMIN
+  SUPER_ADMIN
+  }
+
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PropertyStatus {
+  DRAFT
+  //PENDING
+  PUBLISHED
+  //REJECTED
+  ARCHIVED
+}
+
+enum ReviewAction {
+  APPROVE
+  REJECT
+}
+
+enum TransactionType {
+  SALE
+  RENT
+}
+
+enum CurrencyCode {
+  VND
+  USD
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  VR
+  FILE
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  WON
+  LOST
+  SPAM
+}
+
+enum LeadSource {
+  FORM
+  PHONE
+  ZALO
+  FACEBOOK
+  EMAIL
+  OTHER
+}
+
+//
+// AUTH / RBAC
+//
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  phone        String?
+  avatarUrl    String?
+  status       UserStatus @default(ACTIVE)
+
+  role         RoleCode   @default(ADMIN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Content ownership
+  properties Property[] @relation("UserProperties")
+  posts      Post[]     @relation("UserPosts")
+
+  // Moderation
+  moderatedReviews PropertyReview[] @relation("UserModeratedReviews")
+
+  // Leads assigned
+  assignedLeads Lead[] @relation("LeadAssignee")
+
+  // Agent profile
+  agentProfile AgentProfile?
+
+  @@index([role])
+  @@index([status, createdAt])
+}
+model AgentProfile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  title    String? // e.g. "Chuyên viên tư vấn"
+  bio      String? @db.LongText
+  facebook String?
+  zalo     String?
+  website  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+//
+// TAXONOMY: Location / Types / Amenities / Tags
+//
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String?  @unique
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  parent   Location?  @relation("LocationTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Location[] @relation("LocationTree")
+
+  properties Property[]
+
+  @@index([parentId])
+  @@index([name])
+}
+
+model PropertyType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String?  @unique
+  createdAt DateTime @default(now())
+
+  properties Property[]
+}
+
+model Amenity {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String?  @unique
+  createdAt DateTime @default(now())
+
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId String
+  amenityId  String
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+  @@index([amenityId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  propertyTags PropertyTag[]
+  postTags     PostTag[]
+
+  @@index([name])
+}
+
+model PropertyTag {
+  propertyId String
+  tagId      String
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, tagId])
+  @@index([tagId])
+  @@index([propertyId])
+}
+
+//
+// PROPERTIES (Real estate listing)
+//
+model Property {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String? @db.LongText
+
+  transactionType TransactionType
+
+  // Pricing
+  currency     CurrencyCode @default(VND)
+  price        Decimal?     @db.Decimal(18, 2)
+  priceMin     Decimal?     @db.Decimal(18, 2)
+  priceMax     Decimal?     @db.Decimal(18, 2)
+  priceUnit    String? // "VND", "triệu", "tỷ", "/tháng" ...
+  isNegotiable Boolean      @default(false)
+
+  // Specs
+  area      Decimal? @db.Decimal(10, 2)
+  landArea  Decimal? @db.Decimal(10, 2)
+  bedrooms  Int?
+  bathrooms Int?
+  floors    Int?
+  frontage  Decimal? @db.Decimal(10, 2)
+  roadWidth Decimal? @db.Decimal(10, 2)
+
+  // Address & geo
+  address   String?
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+
+  status      PropertyStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  // Relations
+  locationId String?
+  typeId     String?
+  authorId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User          @relation("UserProperties", fields: [authorId], references: [id], onDelete: Restrict)
+  location Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  type     PropertyType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+
+  images   PropertyImage[]
+  media    PropertyMedia[]
+  features PropertyFeature[]
+  reviews  PropertyReview[]
+
+  amenities PropertyAmenity[]
+  tags      PropertyTag[]
+  leads     Lead[]
+
+  //@@index([status, createdAt])
+  //@@index([transactionType, status])
+  //@@index([authorId])
+  //@@index([locationId])
+ // @@index([typeId])
+  @@index([status, title])
+  @@index([status, address])
+  @@index([status, createdAt])
+  @@index([status, publishedAt])
+  @@index([status, price])
+  @@index([status, area])
+  @@index([status, locationId])
+  @@index([status, typeId])
+  @@index([transactionType, status])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  alt        String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, sortOrder])
+}
+
+model PropertyMedia {
+  id         String    @id @default(cuid())
+  propertyId String
+  type       MediaType
+  url        String
+  title      String?
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, type, sortOrder])
+}
+
+//
+// Feature động kiểu key-value (đủ để cover: pháp lý, hướng nhà, nội thất,...)
+//
+model PropertyFeature {
+  id         String   @id @default(cuid())
+  propertyId String
+  key        String // ex: "legal", "direction", "furniture", "project", ...
+  value      String
+  createdAt  DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([key])
+}
+
+//
+// Moderation audit trail
+//
+model PropertyReview {
+  id          String       @id @default(cuid())
+  propertyId  String
+  moderatorId String
+  action      ReviewAction
+  note        String?      @db.LongText
+  createdAt   DateTime     @default(now())
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  moderator User     @relation("UserModeratedReviews", fields: [moderatorId], references: [id], onDelete: Restrict)
+
+  @@index([propertyId, createdAt])
+  @@index([moderatorId])
+}
+
+//
+// LEADS (contact / interest)
+//
+model Lead {
+  id         String  @id @default(cuid())
+  propertyId String?
+  name       String?
+  phone      String
+  email      String?
+  message    String? @db.LongText
+
+  status LeadStatus @default(NEW)
+  source LeadSource @default(FORM)
+
+  // UTM / tracking (optional)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  referrer    String?
+  ip          String?
+
+  // Assign to user (optional)
+  assignedToId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  assignedTo User?     @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([phone])
+  @@index([status, createdAt])
+  @@index([propertyId, createdAt])
+  @@index([assignedToId])
+}
+
+//
+// POSTS / NEWS (CMS)
+//
+model PostCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  posts Post[]
+
+  @@index([name])
+}
+
+model Post {
+  id       String     @id @default(cuid())
+  title    String
+  slug     String     @unique
+  excerpt  String?
+  content  String     @db.LongText
+  coverUrl String?
+  status   PostStatus @default(DRAFT)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+
+  authorId   String
+  categoryId String?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author   User          @relation("UserPosts", fields: [authorId], references: [id], onDelete: Restrict)
+  category PostCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags     PostTag[]
+
+  @@index([status, createdAt])
+  @@index([authorId])
+  @@index([categoryId])
+}
+
+model PostTag {
+  postId String
+  tagId  String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+//
+// STATIC PAGES (About, Contact, Policy...)
+//
+model Page {
+  id      String @id @default(cuid())
+  title   String
+  slug    String @unique
+  content String @db.LongText
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, updatedAt])
+}
+
+//
+// CONTACT FORM (general)
+//
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String?
+  phone     String?
+  email     String?
+  subject   String?
+  message   String   @db.LongText
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+//
+// SETTINGS (site configs)
+//
+model Setting {
+  key       String   @id
+  value     String   @db.LongText
+  updatedAt DateTime @updatedAt
+}
