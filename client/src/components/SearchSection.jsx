@@ -1,625 +1,352 @@
-
-// làm lại khi đầy đủ 3 trang danh sách (dự án,mua nhà, thuê nhà)
-import { useMemo, useState } from "react";
+// src/components/SearchSection.jsx
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MOCK } from "../hook/data";
 import TINH_THANH from "../hook/datatinhthanh";
+
+// Import Icon từ Lucide React
+import {
+  Search,
+  MapPin,
+  Building2,
+  Wallet,
+  ChevronDown,
+  RotateCcw,
+  Home,
+  Key,
+  Building,
+  ArrowRight,
+} from "lucide-react";
+
+// --- CẤU HÌNH GIÁ (GIỮ NGUYÊN) ---
+const PRICE_RANGES = {
+  SALE: [
+    { label: "Tất cả mức giá", min: 0, max: Infinity },
+    { label: "Dưới 2 tỷ", min: 0, max: 2000000000 },
+    { label: "2 - 5 tỷ", min: 2000000000, max: 5000000000 },
+    { label: "5 - 10 tỷ", min: 5000000000, max: 10000000000 },
+    { label: "10 - 20 tỷ", min: 10000000000, max: 20000000000 },
+    { label: "Trên 20 tỷ", min: 20000000000, max: Infinity },
+  ],
+  RENT: [
+    { label: "Tất cả mức giá", min: 0, max: Infinity },
+    { label: "Dưới 10 triệu", min: 0, max: 10000000 },
+    { label: "10 - 30 triệu", min: 10000000, max: 30000000 },
+    { label: "30 - 50 triệu", min: 30000000, max: 50000000 },
+    { label: "Trên 50 triệu", min: 50000000, max: Infinity },
+  ],
+  PROJECT: [
+    { label: "Tất cả mức giá", min: 0, max: Infinity },
+    { label: "Dưới 3 tỷ", min: 0, max: 3000000000 },
+    { label: "3 - 7 tỷ", min: 3000000000, max: 7000000000 },
+    { label: "Trên 7 tỷ", min: 7000000000, max: Infinity },
+  ],
+};
 
 export default function SearchSection() {
   const navigate = useNavigate();
 
-  // ====== TAB TYPE ======
-  // "du-an" | "mua-nha" | "thue-nha"
-  const [loaiTim, setLoaiTim] = useState("du-an");
+  // 1. STATE QUẢN LÝ
+  const [activeTab, setActiveTab] = useState("PROJECT");
+  const [filters, setFilters] = useState({
+    keyword: "",
+    locationId: "all",
+    typeId: "all",
+    priceRangeIndex: 0,
+  });
 
-  // ====== COMMON ======
-  const [keyword, setKeyword] = useState("");
-  const [khuVuc, setKhuVuc] = useState(""); // thêm khu vực dùng chung
-
-  // ====== LOẠI 1: DỰ ÁN ======
-  const [duAnLoai, setDuAnLoai] = useState(""); // loại dự án
-  const [duAnTinhTrang, setDuAnTinhTrang] = useState(""); // tình trạng
-  const [duAnTienDo, setDuAnTienDo] = useState(""); // tiến độ
-  const [duAnGia, setDuAnGia] = useState([1, 10]); // tỷ
-
-  // ====== LOẠI 2: MUA NHÀ ======
-  const [muaGia, setMuaGia] = useState([1, 10]); // tỷ
-  const [muaDacDiem, setMuaDacDiem] = useState(""); // đặc điểm
-  const [muaSanPham, setMuaSanPham] = useState(""); // sản phẩm
-
-  // ====== LOẠI 3: THUÊ NHÀ ======
-  const [thueThoiGian, setThueThoiGian] = useState(""); // thời gian thuê
-  const [thueGia, setThueGia] = useState([1, 10]); // triệu/tháng (demo)
-  const [thueDacDiem, setThueDacDiem] = useState("");
-  const [thueSanPham, setThueSanPham] = useState("");
-
-  // ====== OPTIONS (mày chỉnh tuỳ data thật) ======
-  const DU_AN_LOAI_OPTIONS = useMemo(
-    () => [
-      { value: "", label: "Chọn loại dự án" },
-      { value: "can-ho", label: "Căn hộ" },
-      { value: "khu-do-thi", label: "Khu đô thị" },
-      { value: "nha-pho", label: "Nhà phố" },
-      { value: "biet-thu", label: "Biệt thự" },
-      { value: "dat-nen", label: "Đất nền" },
-    ],
+  // 2. LẤY DỮ LIỆU
+  const propertyTypes = useMemo(
+    () => Object.values(MOCK.entities.propertyTypes),
     []
   );
 
-  const DU_AN_TINH_TRANG_OPTIONS = useMemo(
-    () => [
-      { value: "", label: "Chọn tình trạng" },
-      { value: "dang-mo-ban", label: "Đang mở bán" },
-      { value: "sap-mo-ban", label: "Sắp mở bán" },
-      { value: "da-ban-giao", label: "Đã bàn giao" },
-    ],
-    []
-  );
-
-  const DU_AN_TIEN_DO_OPTIONS = useMemo(
-    () => [
-      { value: "", label: "Chọn tiến độ" },
-      { value: "dang-xay-dung", label: "Đang xây dựng" },
-      { value: "sap-ban-giao", label: "Sắp bàn giao" },
-      { value: "da-hoan-thien", label: "Đã hoàn thiện" },
-    ],
-    []
-  );
-
-  const DAC_DIEM_OPTIONS = useMemo(
-    () => [
-      { value: "", label: "Chọn đặc điểm" },
-      { value: "gan-truong", label: "Gần trường học" },
-      { value: "gan-benh-vien", label: "Gần bệnh viện" },
-      { value: "noi-that", label: "Có nội thất" },
-      { value: "view-dep", label: "View đẹp" },
-    ],
-    []
-  );
-
-  const SAN_PHAM_OPTIONS = useMemo(
-    () => [
-      { value: "", label: "Chọn sản phẩm" },
-      { value: "chung-cu", label: "Chung cư" },
-      { value: "nha-pho", label: "Nhà phố" },
-      { value: "biet-thu", label: "Biệt thự" },
-      { value: "dat-nen", label: "Đất nền" },
-      { value: "shophouse", label: "Shophouse" },
-    ],
-    []
-  );
-
-  const THUE_THOI_GIAN_OPTIONS = useMemo(
-    () => [
-      { value: "", label: "Chọn thời gian thuê" },
-      { value: "ngan-han", label: "Ngắn hạn" },
-      { value: "6-thang", label: "6 tháng" },
-      { value: "1-nam", label: "1 năm" },
-      { value: "dai-han", label: "Dài hạn" },
-    ],
-    []
-  );
-
-  // ====== SUBMIT ======
+  // 3. HANDLERS
   const handleSearch = (e) => {
     e.preventDefault();
+    const params = new URLSearchParams();
+    params.set("tab", activeTab);
+    if (filters.keyword) params.set("keyword", filters.keyword);
+    if (filters.locationId !== "all")
+      params.set("locationId", filters.locationId);
+    if (filters.typeId !== "all") params.set("typeId", filters.typeId);
 
-    const paramsObj = {
-      ...(loaiTim && { loai: loaiTim }),
-      ...(keyword && { q: keyword }),
-      ...(khuVuc && { khu_vuc: khuVuc }),
-    };
-
-    if (loaiTim === "du-an") {
-      Object.assign(paramsObj, {
-        ...(duAnLoai && { du_an_loai: duAnLoai }),
-        ...(duAnTinhTrang && { tinh_trang: duAnTinhTrang }),
-        ...(duAnTienDo && { tien_do: duAnTienDo }),
-        ...(duAnGia && { gia: `${duAnGia[0]}-${duAnGia[1]}` }),
-      });
-    }
-
-    if (loaiTim === "mua-nha") {
-      Object.assign(paramsObj, {
-        ...(muaGia && { gia: `${muaGia[0]}-${muaGia[1]}` }),
-        ...(muaDacDiem && { dac_diem: muaDacDiem }),
-        ...(muaSanPham && { san_pham: muaSanPham }),
-      });
-    }
-
-    if (loaiTim === "thue-nha") {
-      Object.assign(paramsObj, {
-        ...(thueThoiGian && { thoi_gian_thue: thueThoiGian }),
-        ...(thueGia && { gia: `${thueGia[0]}-${thueGia[1]}` }),
-        ...(thueDacDiem && { dac_diem: thueDacDiem }),
-        ...(thueSanPham && { san_pham: thueSanPham }),
-      });
-    }
-
-    const onlyLoai =
-      Object.keys(paramsObj).filter((k) => k !== "loai").length === 0;
-    if (onlyLoai) {
-      alert("Nhập keyword hoặc chọn ít nhất 1 bộ lọc để tìm kiếm");
-      return;
-    }
-
-    const params = new URLSearchParams(paramsObj);
-    navigate(`/danhsach?${params.toString()}`);
+    navigate(`/properties?${params.toString()}`);
   };
 
   const handleReset = () => {
-    setKeyword("");
-    setKhuVuc("");
-
-    setDuAnLoai("");
-    setDuAnTinhTrang("");
-    setDuAnTienDo("");
-    setDuAnGia([1, 10]);
-
-    setMuaGia([1, 10]);
-    setMuaDacDiem("");
-    setMuaSanPham("");
-
-    setThueThoiGian("");
-    setThueGia([1, 10]);
-    setThueDacDiem("");
-    setThueSanPham("");
+    setFilters({
+      keyword: "",
+      locationId: "all",
+      typeId: "all",
+      priceRangeIndex: 0,
+    });
   };
 
-  // ====== RANGE COMPONENT (2 THUMB + TOOLTIP) ======
-  const RangeTwoThumb = ({
+  // --- UI HELPER: Custom Select Wrapper ---
+  const CustomSelect = ({
+    icon: Icon, // Nhận component Icon
     label,
-    unit = "tỷ",
-    min = 1,
-    max = 20,
-    gap = 1,
     value,
     onChange,
-  }) => {
-    const minVal = value[0];
-    const maxVal = value[1];
+    options,
+    defaultLabel = "Tất cả",
+  }) => (
+    <div className="relative group w-full">
+      <div className="flex items-center h-[64px] bg-white/5 border border-white/10 rounded-2xl px-5 transition-all duration-300 group-hover:bg-white/10 group-focus-within:bg-white/15 group-focus-within:border-yellow-400/50 group-focus-within:ring-4 group-focus-within:ring-yellow-400/10 backdrop-blur-md">
+        {/* Icon container với hiệu ứng glow nhẹ */}
+        <div className="text-slate-400 group-focus-within:text-yellow-400 transition-colors mr-4 p-2 rounded-lg bg-white/5 group-focus-within:bg-yellow-400/10">
+          <Icon size={20} strokeWidth={2} />
+        </div>
 
-    const minPercent = ((minVal - min) / (max - min)) * 100;
-    const maxPercent = ((maxVal - min) / (max - min)) * 100;
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <label className="text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 truncate group-focus-within:text-yellow-400 transition-colors">
+            {label}
+          </label>
 
-    return (
-      <div className="rounded-2xl border border-gray-200 bg-white/70 p-5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-gray-700">{label}</p>
-            <p className="text-xs text-gray-500">Kéo 2 đầu để chọn khoảng</p>
-          </div>
+          <div className="relative">
+            <select
+              value={value}
+              onChange={onChange}
+              className="w-full bg-transparent text-white font-semibold text-[15px] appearance-none focus:outline-none cursor-pointer absolute inset-0 opacity-0 z-10"
+            >
+              <option value="all" className="text-slate-900">
+                {defaultLabel}
+              </option>
+              {options.map((opt, idx) => {
+                const val = opt.value || opt.id || idx;
+                const lab = opt.label || opt.name || opt.label;
+                return (
+                  <option key={val} value={val} className="text-slate-900">
+                    {lab}
+                  </option>
+                );
+              })}
+            </select>
 
-          <div className="inline-flex items-center gap-2 rounded-xl bg-blue-600/10 px-3 py-2 text-sm font-semibold text-blue-700">
-            {minVal} – {maxVal} {unit}
+            <div className="text-white/90 font-medium truncate pr-4">
+              {(() => {
+                if (value === "all" || value === 0) return defaultLabel;
+                const found = options.find(
+                  (o) =>
+                    o.value === value ||
+                    o.id === value ||
+                    options.indexOf(o) === value
+                );
+                return found ? found.label || found.name : defaultLabel;
+              })()}
+            </div>
           </div>
         </div>
 
-        <div className="mt-5">
-          <div className="relative h-14 select-none">
-            <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-gray-200" />
-            <div
-              className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-blue-600 transition-[left,width] duration-100"
-              style={{
-                left: `${minPercent}%`,
-                width: `${maxPercent - minPercent}%`,
-              }}
-            />
-
-            <div
-              className="absolute -top-1 translate-x-[-50%] rounded-lg bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white shadow"
-              style={{ left: `${minPercent}%` }}
-            >
-              {minVal} {unit}
-              <div className="mx-auto mt-1 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-900" />
-            </div>
-
-            <div
-              className="absolute -top-1 translate-x-[-50%] rounded-lg bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white shadow"
-              style={{ left: `${maxPercent}%` }}
-            >
-              {maxVal} {unit}
-              <div className="mx-auto mt-1 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-900" />
-            </div>
-
-            <input
-              type="range"
-              min={min}
-              max={max}
-              value={minVal}
-              onChange={(e) => {
-                const v = Math.min(Number(e.target.value), maxVal - gap);
-                onChange([v, maxVal]);
-              }}
-              className="range-two absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent"
-              style={{ zIndex: minVal > max - 2 ? 6 : 5 }}
-            />
-
-            <input
-              type="range"
-              min={min}
-              max={max}
-              value={maxVal}
-              onChange={(e) => {
-                const v = Math.max(Number(e.target.value), minVal + gap);
-                onChange([minVal, v]);
-              }}
-              className="range-two absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent"
-              style={{ zIndex: 7 }}
-            />
-
-            <style>{`
-              .range-two { pointer-events: none; }
-              .range-two::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                appearance: none;
-                height: 18px;
-                width: 18px;
-                border-radius: 9999px;
-                background: #ffffff;
-                border: 2px solid #2563eb;
-                box-shadow: 0 10px 25px rgba(37, 99, 235, 0.22);
-                cursor: grab;
-                pointer-events: auto;
-                transition: transform 0.12s ease;
-              }
-              .range-two:active::-webkit-slider-thumb {
-                cursor: grabbing;
-                transform: scale(1.08);
-              }
-              .range-two::-moz-range-thumb {
-                height: 18px;
-                width: 18px;
-                border-radius: 9999px;
-                background: #ffffff;
-                border: 2px solid #2563eb;
-                box-shadow: 0 10px 25px rgba(37, 99, 235, 0.22);
-                cursor: grab;
-                pointer-events: auto;
-                transition: transform 0.12s ease;
-              }
-              .range-two:active::-moz-range-thumb {
-                cursor: grabbing;
-                transform: scale(1.08);
-              }
-              .range-two::-webkit-slider-runnable-track { height: 0px; }
-              .range-two::-moz-range-track { height: 0px; }
-            `}</style>
-          </div>
-
-          <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-            <span>
-              {min} {unit}
-            </span>
-            <span>
-              {max} {unit}
-            </span>
-          </div>
+        <div className="absolute right-4 text-slate-500 group-focus-within:text-yellow-400 pointer-events-none transition-colors">
+          <ChevronDown size={16} />
         </div>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
-    // <div className="min-h-screen relative flex items-center justify-center px-4 py-10">
-    <div className="relative flex items-center justify-center px-4 pt-6 pb-10 min-h-[calc(100vh-var(--nav-h))]">
-      {/* Background */}
+    <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden font-sans">
+      {/* 1. BACKGROUND IMAGE */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transform hover:scale-105 transition-transform duration-[20s]"
         style={{ backgroundImage: "url('/anhnen.jpg')" }}
       />
-      <div className="absolute inset-0 bg-black/30" />
 
-      <form
-        onSubmit={handleSearch}
-        className="relative w-full max-w-6xl overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-xl backdrop-blur-xl"
-      >
-        {/* Header */}
-        <div className="px-6 py-6 md:px-10 md:py-8 border-b border-gray-200/70">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
-            Tìm kiếm bất động sản
-          </h2>
-          <p className="mt-1 text-sm md:text-base text-gray-600">
-            Chọn loại tìm kiếm, nhập keyword và lọc theo nhu cầu.
+      {/* 2. OVERLAY CAO CẤP */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/90 via-slate-900/60 to-slate-900/90" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+
+      {/* 3. MAIN CONTENT */}
+      <div className="relative z-10 w-full max-w-7xl px-4 flex flex-col items-center justify-center h-full">
+        {/* HERO TEXT */}
+        <div className="text-center mb-12 space-y-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-2xl ring-1 ring-white/20">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            </span>
+            <span className="text-xs font-bold text-white uppercase tracking-widest">
+              Hệ thống BĐS SỐ 1 VIỆT NAM
+            </span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl">
+            Khởi Đầu <br className="md:hidden" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 animate-gradient-x">
+              Thịnh Vượng
+            </span>
+          </h1>
+
+          <p className="text-slate-300 text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
+            Khám phá hơn{" "}
+            <strong className="text-white font-bold">200+</strong> bất động
+            sản{" "}
+            {activeTab === "PROJECT"
+              ? "dự án cao cấp"
+              : activeTab === "SALE"
+              ? "đang giao dịch"
+              : "cho thuê"}{" "}
+            tại những vị trí đắc địa nhất.
           </p>
+        </div>
 
-          {/* Tabs */}
-          <div className="mt-5 inline-flex rounded-2xl bg-white/70 p-1 border border-gray-200">
+        {/* 4. SEARCH BOX CONTAINER */}
+        <div className="w-full bg-slate-900/40 border border-white/10 backdrop-blur-2xl rounded-[40px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] overflow-visible">
+          {/* TABS HEADER */}
+          <div className="flex justify-center md:justify-start px-8 pt-6 pb-2 gap-2">
             {[
-              { key: "du-an", label: "Dự án" },
-              { key: "mua-nha", label: "Mua nhà" },
-              { key: "thue-nha", label: "Thuê nhà" },
-            ].map((t) => {
-              const active = loaiTim === t.key;
+              { id: "PROJECT", label: "Dự Án", icon: Building },
+              { id: "SALE", label: "Mua Bán", icon: Home },
+              { id: "RENT", label: "Cho Thuê", icon: Key },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
               return (
                 <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setLoaiTim(t.key)}
-                  className={[
-                    "px-4 py-2 text-sm font-semibold rounded-xl transition",
-                    active
-                      ? "bg-blue-600 text-white shadow"
-                      : "text-gray-700 hover:bg-gray-50",
-                  ].join(" ")}
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setFilters({ ...filters, priceRangeIndex: 0 });
+                  }}
+                  className={`
+                    relative group flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-300
+                    ${
+                      isActive
+                        ? "bg-white text-slate-900 shadow-lg shadow-white/10 scale-105"
+                        : "bg-transparent text-slate-400 hover:text-white hover:bg-white/5"
+                    }
+                  `}
                 >
-                  {t.label}
+                  <TabIcon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                  <span
+                    className={`text-sm font-bold tracking-wide ${
+                      isActive ? "opacity-100" : "opacity-80"
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
 
-        {/* Body */}
-        <div className="px-6 py-6 md:px-10 md:py-8 space-y-6">
-          {/* COMMON: KEYWORD + KHU VỰC */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* Keyword */}
-            <div className="md:col-span-8">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Từ khoá
-              </label>
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M21 21l-4.3-4.3" />
-                  </svg>
-                </span>
+          {/* SEARCH FORM */}
+          <form onSubmit={handleSearch} className="p-6 md:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              {/* Keyword Input */}
+              <div className="md:col-span-12 lg:col-span-4">
+                <div className="relative group w-full h-full">
+                  <div className="flex items-center h-[64px] bg-white/5 border border-white/10 rounded-2xl px-5 transition-all duration-300 group-hover:bg-white/10 group-focus-within:bg-white/15 group-focus-within:border-yellow-400/50 group-focus-within:ring-4 group-focus-within:ring-yellow-400/10 backdrop-blur-md">
+                    <div className="text-slate-400 group-focus-within:text-yellow-400 mr-4 p-2 rounded-lg bg-white/5 group-focus-within:bg-yellow-400/10 transition-colors">
+                      <Search size={20} strokeWidth={2} />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-yellow-400 transition-colors">
+                        Từ khóa tìm kiếm
+                      </label>
+                      <input
+                        type="text"
+                        value={filters.keyword}
+                        onChange={(e) =>
+                          setFilters({ ...filters, keyword: e.target.value })
+                        }
+                        placeholder={
+                          activeTab === "PROJECT"
+                            ? "Vinhomes, EcoPark..."
+                            : "Nhập địa chỉ, đường..."
+                        }
+                        className="w-full bg-transparent text-white font-semibold text-[15px] placeholder-slate-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                <input
-                  type="text"
-                  placeholder="VD: chung cư quận 1, dự án quận 9, nhà cho thuê..."
-                  className="w-full rounded-xl border border-gray-200 bg-white px-10 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
+              {/* Location Select */}
+              <div className="md:col-span-6 lg:col-span-3">
+                <CustomSelect
+                  icon={MapPin}
+                  label="Khu vực"
+                  value={filters.locationId}
+                  onChange={(e) =>
+                    setFilters({ ...filters, locationId: e.target.value })
+                  }
+                  options={TINH_THANH}
+                  defaultLabel="Toàn quốc"
+                />
+              </div>
+
+              {/* Type Select */}
+              <div className="md:col-span-6 lg:col-span-3">
+                <CustomSelect
+                  icon={Building2}
+                  label="Loại hình"
+                  value={filters.typeId}
+                  onChange={(e) =>
+                    setFilters({ ...filters, typeId: e.target.value })
+                  }
+                  options={propertyTypes}
+                  defaultLabel="Tất cả"
+                />
+              </div>
+
+              {/* Price Select */}
+              <div className="md:col-span-12 lg:col-span-2">
+                <CustomSelect
+                  icon={Wallet}
+                  label="Mức giá"
+                  value={filters.priceRangeIndex}
+                  onChange={(e) =>
+                    setFilters({
+                      ...filters,
+                      priceRangeIndex: Number(e.target.value),
+                    })
+                  }
+                  options={PRICE_RANGES[activeTab]}
                 />
               </div>
             </div>
 
-            {/* Khu vực */}
-            <div className="md:col-span-4">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Khu vực
-              </label>
-              <select
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                value={khuVuc}
-                onChange={(e) => setKhuVuc(e.target.value)}
+            {/* ACTION BUTTONS */}
+            <div className="mt-8 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/5">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="group flex items-center gap-2 px-6 py-3 rounded-xl text-slate-400 text-sm font-bold hover:text-white hover:bg-white/5 transition-all w-full sm:w-auto justify-center"
               >
-                <option value="">Tỉnh / Thành</option>
-                {TINH_THANH.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                <RotateCcw
+                  size={16}
+                  className="group-hover:-rotate-180 transition-transform duration-500"
+                />
+                <span>Làm mới bộ lọc</span>
+              </button>
 
-          {/* ====== PANEL: DỰ ÁN ====== */}
-          {loaiTim === "du-an" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div className="md:col-span-4">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Loại
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={duAnLoai}
-                    onChange={(e) => setDuAnLoai(e.target.value)}
-                  >
-                    {DU_AN_LOAI_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-4">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Tình trạng
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={duAnTinhTrang}
-                    onChange={(e) => setDuAnTinhTrang(e.target.value)}
-                  >
-                    {DU_AN_TINH_TRANG_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-4">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Tiến độ
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={duAnTienDo}
-                    onChange={(e) => setDuAnTienDo(e.target.value)}
-                  >
-                    {DU_AN_TIEN_DO_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <RangeTwoThumb
-                label="Khoảng giá (Dự án)"
-                unit="tỷ"
-                min={1}
-                max={20}
-                gap={1}
-                value={duAnGia}
-                onChange={setDuAnGia}
-              />
-            </div>
-          )}
-
-          {/* ====== PANEL: MUA NHÀ ====== */}
-          {loaiTim === "mua-nha" && (
-            <div className="space-y-4">
-              <RangeTwoThumb
-                label="Khoảng giá (Mua nhà)"
-                unit="tỷ"
-                min={1}
-                max={20}
-                gap={1}
-                value={muaGia}
-                onChange={setMuaGia}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div className="md:col-span-6">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Đặc điểm
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={muaDacDiem}
-                    onChange={(e) => setMuaDacDiem(e.target.value)}
-                  >
-                    {DAC_DIEM_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-6">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Sản phẩm
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={muaSanPham}
-                    onChange={(e) => setMuaSanPham(e.target.value)}
-                  >
-                    {SAN_PHAM_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ====== PANEL: THUÊ NHÀ ====== */}
-          {loaiTim === "thue-nha" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div className="md:col-span-6">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Thời gian thuê
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={thueThoiGian}
-                    onChange={(e) => setThueThoiGian(e.target.value)}
-                  >
-                    {THUE_THOI_GIAN_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-6">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Sản phẩm
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={thueSanPham}
-                    onChange={(e) => setThueSanPham(e.target.value)}
-                  >
-                    {SAN_PHAM_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <RangeTwoThumb
-                label="Khoảng giá (Thuê nhà)"
-                unit="triệu"
-                min={1}
-                max={50}
-                gap={1}
-                value={thueGia}
-                onChange={setThueGia}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div className="md:col-span-12">
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Đặc điểm
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    value={thueDacDiem}
-                    onChange={(e) => setThueDacDiem(e.target.value)}
-                  >
-                    {DAC_DIEM_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col md:flex-row gap-3">
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 md:w-auto"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-white font-bold text-lg shadow-[0_10px_30px_rgba(251,191,36,0.25)] hover:shadow-[0_20px_50px_rgba(251,191,36,0.4)] hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
               >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M21 21l-4.3-4.3" />
-              </svg>
-              Tìm kiếm
-            </button>
-
-            <button
-              type="button"
-              onClick={handleReset}
-              className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-gray-200/60 md:w-auto"
-            >
-              Reset lọc
-            </button>
-          </div>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 skew-y-12"></div>
+                <Search size={22} strokeWidth={2.5} />
+                <span className="uppercase tracking-wide">Tìm kiếm</span>
+                <ArrowRight
+                  size={20}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
+
+      {/* Scroll Down Indicator */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+        <div className="w-[1px] h-12 bg-gradient-to-b from-transparent via-white to-transparent"></div>
+        <span className="text-[10px] text-white uppercase tracking-[0.2em]">
+          Khám phá
+        </span>
+      </div>
     </div>
   );
 }

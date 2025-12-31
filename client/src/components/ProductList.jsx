@@ -1,92 +1,82 @@
-// list nhà <- trang chủ
-import { Link, useNavigate } from "react-router-dom";
-import { sampleProducts } from "../hook/chitietsanpham"; // dùng chung data với ProductDetail
-
-const soluong = 8;
-
-const formatPrice = (price) => price.toLocaleString("vi-VN") + " ₫";
-
-function ProductCard({ p }) {
-  const cover = (p.images?.[0] || p.image) ?? "/house1.jpg";
-
-  return (
-    <Link
-      to={`/ProductDetail/${p.id}`} // ✅ KHỚP route hiện tại của mày
-      className="group block rounded-2xl overflow-hidden border bg-white shadow-sm hover:shadow-lg transition"
-    >
-      <div className="relative overflow-hidden">
-        <img
-          src={cover}
-          alt={p.name}
-          className="w-full h-48 object-cover group-hover:scale-[1.03] transition"
-        />
-
-        {/* ✅ Badge type */}
-        {p.type && (
-          <div className="absolute left-3 top-3 rounded-full border border-gray-200 bg-white/90 px-3 py-1 text-xs font-medium text-gray-700">
-            🏷 {p.type}
-          </div>
-        )}
-      </div>
-
-      <div className="p-4">
-        <h3 className="font-semibold text-lg line-clamp-2">{p.name}</h3>
-
-        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-          📍 {p.address}
-        </p>
-
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-blue-600 font-bold">{formatPrice(p.price)}</p>
-          <p className="text-sm text-gray-500">{p.area} m²</p>
-        </div>
-
-        <div className="mt-3 flex gap-2 text-xs">
-          <span className="px-2 py-1 rounded-lg bg-gray-100">
-            🛏 {p.bedrooms}
-          </span>
-          <span className="px-2 py-1 rounded-lg bg-gray-100">
-            🚿 {p.bathrooms}
-          </span>
-          <span className="px-2 py-1 rounded-lg bg-gray-100">
-            🧭 {p.direction}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
+import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion"; // Thêm chút hiệu ứng cho sinh động
+import PropertyCard from "./PropertyCard";
+import { MOCK, selectPropertyCard } from "../hook/data";
 
 export default function ProductList() {
   const navigate = useNavigate();
 
+  // 1. Lấy dữ liệu từ data.js
+  const products = useMemo(() => {
+    // Lấy danh sách ID
+    const allIds = MOCK.listing || Object.keys(MOCK.entities.properties);
+
+    // Map sang object và lọc
+    return allIds
+      .map((id) => selectPropertyCard(id))
+      .filter((p) => p && p.transactionType === "SALE") // Chỉ lấy BĐS đang BÁN (Mua Nhà)
+      .slice(0, 8); // Giới hạn 8 sản phẩm
+  }, []);
+
   const handleViewMore = () => {
-    navigate("/nha");
+    // Chuyển sang trang danh sách với tab MUA NHÀ
+    navigate("/properties?tab=SALE");
   };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold">Các sản phẩm</h2>
-        <p className="text-gray-500 mt-2">
-          Gợi ý bất động sản nổi bật dành cho bạn
-        </p>
-      </div>
+    <section className="bg-slate-50 py-16 md:py-24">
+      <div className="mx-auto max-w-[1600px] px-6 md:px-12">
+        {/* Header Section */}
+        <div className="mb-12 text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl font-extralight text-[#0E2038] md:text-4xl"
+          >
+            Bất động sản nổi bật
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="mt-3 text-lg text-slate-500 max-w-2xl mx-auto"
+          >
+            Tuyển chọn những ngôi nhà, căn hộ và biệt thự có giá trị đầu tư tốt
+            nhất hiện nay.
+          </motion.p>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {sampleProducts.slice(0, soluong).map((p) => (
-          <ProductCard key={p.id} p={p} />
-        ))}
-      </div>
+        {/* Grid Products */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {products.map((p, index) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05, duration: 0.5 }}
+            >
+              <PropertyCard propertyId={p.id} />
+            </motion.div>
+          ))}
+        </div>
 
-      <div className="flex justify-center mt-10">
-        <button
-          onClick={handleViewMore}
-          className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
-        >
-          Xem thêm
-        </button>
+        {/* Button Xem thêm */}
+        <div className="mt-16 flex justify-center">
+          <button
+            onClick={handleViewMore}
+            className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-[#0E2038] px-8 py-4 font-bold text-white shadow-lg transition-all hover:bg-[#1a3a63] hover:shadow-xl hover:shadow-[#0E2038]/20 active:scale-95"
+          >
+            <span>Xem tất cả nhà đất</span>
+            <span className="transition-transform duration-300 group-hover:translate-x-1">
+              →
+            </span>
+          </button>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

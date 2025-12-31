@@ -1,94 +1,82 @@
-// list dự án <- trang chủ
-import { Link, useNavigate } from "react-router-dom";
-import { sampleProjects } from "../hook/chitietduan";
-
-const soluong = 8;
-
-const formatPriceShort = (vnd) => {
-  if (!Number.isFinite(vnd)) return "—";
-  if (vnd >= 1_000_000_000) return `${(vnd / 1_000_000_000).toFixed(1)} tỷ`;
-  if (vnd >= 1_000_000) return `${Math.round(vnd / 1_000_000)} triệu`;
-  return vnd.toLocaleString("vi-VN") + " ₫";
-};
-
-function ProjectCard({ p }) {
-  const cover = p.images?.[0] ?? "/house1.jpg";
-
-  return (
-    <Link
-      to={`/ProjectDetail/${p.id}`}
-      className="group block rounded-2xl overflow-hidden border bg-white shadow-sm hover:shadow-lg transition"
-    >
-      <div className="overflow-hidden relative">
-        <img
-          src={cover}
-          alt={p.name}
-          className="w-full h-48 object-cover group-hover:scale-[1.03] transition"
-        />
-
-        {/* badge status */}
-        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-black/60 text-white text-xs backdrop-blur border border-white/10">
-          🏗 {p.status}
-        </div>
-      </div>
-
-      <div className="p-4">
-        <h3 className="font-semibold text-lg line-clamp-2">{p.name}</h3>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-          📍 {p.location}
-        </p>
-
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-blue-600 font-bold">
-            Giá từ {formatPriceShort(p.priceFrom)}
-          </p>
-          <p className="text-sm text-gray-500">
-            {p.minArea}–{p.maxArea} m²
-          </p>
-        </div>
-
-        <div className="mt-3 flex gap-2 text-xs flex-wrap">
-          <span className="px-2 py-1 rounded-lg bg-gray-100">🏙 {p.type}</span>
-          <span className="px-2 py-1 rounded-lg bg-gray-100">
-            🏢 {p.developer}
-          </span>
-          <span className="px-2 py-1 rounded-lg bg-gray-100">
-            📦 {p.handover}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
+import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import PropertyCard from "./PropertyCard";
+import { MOCK, selectPropertyCard } from "../hook/data";
 
 export default function ProjectList() {
   const navigate = useNavigate();
 
+  // 1. Lấy dữ liệu và lọc Dự án
+  const projects = useMemo(() => {
+    // Lấy danh sách ID
+    const allIds = MOCK.listing || Object.keys(MOCK.entities.properties);
+
+    // Map sang object và lọc
+    return allIds
+      .map((id) => selectPropertyCard(id))
+      .filter((p) => p && p.isProject) // Lọc theo cờ isProject (đã định nghĩa trong data.js)
+      .slice(0, 8); // Giới hạn 8 dự án
+  }, []);
+
   const handleViewMore = () => {
-    navigate("/duan"); // route list dự án full
+    // Chuyển sang trang danh sách với tab DỰ ÁN
+    navigate("/properties?tab=PROJECT");
   };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold">Các dự án</h2>
-        <p className="text-gray-500 mt-2">Gợi ý dự án nổi bật dành cho bạn</p>
-      </div>
+    <section className="bg-white py-16 md:py-24">
+      <div className="mx-auto max-w-[1600px] px-6 md:px-12">
+        {/* Header Section */}
+        <div className="mb-12 text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl font-extralight text-[#0E2038] md:text-4xl"
+          >
+            Dự án tiêu biểu
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="mt-3 text-lg text-slate-500 max-w-2xl mx-auto"
+          >
+            Khám phá các dự án căn hộ, khu đô thị hiện đại với tiềm năng sinh
+            lời cao và không gian sống đẳng cấp.
+          </motion.p>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {sampleProjects.slice(0, soluong).map((p) => (
-          <ProjectCard key={p.id} p={p} />
-        ))}
-      </div>
+        {/* Grid Projects */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {projects.map((p, index) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05, duration: 0.5 }}
+            >
+              <PropertyCard propertyId={p.id} />
+            </motion.div>
+          ))}
+        </div>
 
-      <div className="flex justify-center mt-10">
-        <button
-          onClick={handleViewMore}
-          className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition"
-        >
-          Xem thêm
-        </button>
+        {/* Button Xem thêm */}
+        <div className="mt-16 flex justify-center">
+          <button
+            onClick={handleViewMore}
+            className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border-2 border-[#0E2038] bg-transparent px-8 py-4 font-bold text-[#0E2038] transition-all hover:bg-[#0E2038] hover:text-white active:scale-95"
+          >
+            <span>Khám phá tất cả dự án</span>
+            <span className="transition-transform duration-300 group-hover:translate-x-1">
+              →
+            </span>
+          </button>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
