@@ -201,13 +201,17 @@ export const MOCK = {
           "Căn hộ 3PN Masteri Thảo Điền, full nội thất, view sông (Tầng cao)",
         slug: "can-ho-3pn-masteri-thao-dien-full-noi-that-view-song-001",
         description: `
-          Cần bán gấp căn hộ Masteri Thảo Điền, Tháp T2, tầng cao view trực diện sông Sài Gòn cực đẹp.
-          
-          - Diện tích: 92.5m2, thiết kế 3 phòng ngủ, 2 WC.
-          - Hiện trạng: Nhà đã trang bị full nội thất cao cấp nhập khẩu Ý (Sofa da thật, bàn ăn mặt đá, hệ thống bếp Bosch...). Chỉ cần xách vali vào ở.
-          - Tiện ích: Kết nối trực tiếp ga Metro An Phú, TTTM Vincom Mega Mall ngay dưới chân nhà. Hồ bơi, phòng Gym miễn phí.
-          - Pháp lý: Sổ hồng chính chủ, sang tên trong ngày.
-          - Giá bán: 6.5 tỷ (Có thương lượng cho khách thiện chí thanh toán nhanh).
+          BÁN CĂN HỘ 3 PHÒNG NGỦ MASTERI THẢO ĐIỀN - TẦM NHÌN SÔNG SÀI GÒN TUYỆT ĐẸP
+
+Cần tìm chủ nhân mới cho căn hộ cao cấp tại tháp T2, Masteri Thảo Điền. Căn hộ có diện tích 92.5m2, được thiết kế 3 phòng ngủ và 2 WC, tối ưu hóa công năng sử dụng cho gia đình đa thế hệ.
+
+Điểm đắt giá nhất của căn hộ chính là vị trí tầng cao với tầm nhìn trực diện ra sông Sài Gòn. Gia chủ có thể tận hưởng không gian sống trong lành, thoáng đãng và ngắm nhìn khung cảnh thành phố lung linh về đêm ngay tại ban công nhà mình.
+
+Về nội thất, chủ nhà đã đầu tư mạnh tay với toàn bộ trang thiết bị nhập khẩu từ Ý. Từ bộ sofa da thật tại phòng khách, bàn ăn mặt đá sang trọng cho đến hệ thống bếp Bosch hiện đại đều được chọn lọc kỹ lưỡng. Căn hộ đang trong tình trạng hoàn hảo, sẵn sàng chào đón cư dân mới dọn vào ở ngay mà không cần sửa chữa thêm.
+
+Cư dân tại đây được thừa hưởng trọn vẹn hệ sinh thái tiện ích đẳng cấp của khu Thảo Điền: mua sắm tại Vincom Mega Mall ngay dưới chân tòa nhà, sử dụng hồ bơi và phòng Gym miễn phí. Đặc biệt, việc kết nối giao thông vô cùng thuận lợi nhờ nhà ga Metro An Phú nằm ngay mặt tiền dự án.
+
+Pháp lý căn hộ hoàn chỉnh, đã có sổ hồng riêng. Giá bán mong muốn là 6.5 tỷ đồng. Gia chủ rất thiện chí bán và sẵn sàng thương lượng mức giá tốt nhất cho khách hàng thanh toán nhanh.
         `,
         transactionType: "SALE",
         status: "PUBLISHED",
@@ -1324,7 +1328,6 @@ export const MOCK = {
       },
     },
 
-    
     propertyFeatures: {
       // Prop 1: Căn hộ
       pf_01_1: {
