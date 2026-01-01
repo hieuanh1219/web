@@ -1,11 +1,17 @@
 // src/pages/PropertyListPage.jsx
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import PropertyCard from "../components/PropertyCard";
 import { MOCK, selectPropertyCard } from "../hook/data";
+import TINH_THANH from "../hook/datatinhthanh";
 
-// --- CẤU HÌNH DỮ LIỆU (GIỮ NGUYÊN) ---
+// --- 1. CẤU HÌNH DỮ LIỆU ---
 const PRICE_RANGES = {
   SALE: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
@@ -17,10 +23,9 @@ const PRICE_RANGES = {
   ],
   RENT: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
-    { label: "Dưới 10 triệu", min: 0, max: 10000000 },
-    { label: "10 - 30 triệu", min: 10000000, max: 30000000 },
-    { label: "30 - 50 triệu", min: 30000000, max: 50000000 },
-    { label: "Trên 50 triệu", min: 50000000, max: Infinity },
+    { label: "Dưới 5 triệu", min: 0, max: 5000000 },
+    { label: "5 - 15 triệu", min: 5000000, max: 15000000 },
+    { label: "Trên 15 triệu", min: 15000000, max: Infinity },
   ],
   PROJECT: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
@@ -29,6 +34,28 @@ const PRICE_RANGES = {
     { label: "Trên 7 tỷ", min: 7000000000, max: Infinity },
   ],
 };
+
+const AREA_RANGES = [
+  { label: "Tất cả diện tích", min: 0, max: Infinity },
+  { label: "Dưới 50m²", min: 0, max: 50 },
+  { label: "50 - 80m²", min: 50, max: 80 },
+  { label: "80 - 150m²", min: 80, max: 150 },
+  { label: "Trên 150m²", min: 150, max: Infinity },
+];
+
+const BEDROOM_OPTIONS = [
+  { label: "Tất cả", value: "all" },
+  { label: "1+ phòng ngủ", value: 1 },
+  { label: "2+ phòng ngủ", value: 2 },
+  { label: "3+ phòng ngủ", value: 3 },
+  { label: "4+ phòng ngủ", value: 4 },
+];
+
+const RENTAL_PERIODS = [
+  { label: "Tất cả", value: "all" },
+  { label: "Dài hạn (Tháng/Năm)", value: "long_term" },
+  { label: "Ngắn hạn (Ngày/Đêm)", value: "short_term" },
+];
 
 // --- ICON COMPONENTS (GIỮ NGUYÊN) ---
 const Icons = {
@@ -98,6 +125,66 @@ const Icons = {
       />
     </svg>
   ),
+  Filter: () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+      />
+    </svg>
+  ),
+  Calendar: () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    </svg>
+  ),
+  Area: () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+      />
+    </svg>
+  ),
+  Bed: () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.293.293a1 1 0 001.414 0L10 18.414l1.293 1.293a1 1 0 001.414 0L14 18.414l1.293 1.293a1 1 0 001.414 0L18 20v-5h2a2 2 0 002-2V7z"
+      />
+    </svg>
+  ),
   ChevronDown: () => (
     <svg
       className="w-4 h-4"
@@ -133,35 +220,89 @@ const Icons = {
 export default function PropertyListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // --- PARALLAX ANIMATION SETUP ---
+  const containerRef = useRef(null);
+  const { scrollY } = useScroll();
+  // Background di chuyển chậm hơn tốc độ cuộn (parallax)
+  const yRange = useTransform(scrollY, [0, 500], [0, 150]);
+  const opacityRange = useTransform(scrollY, [0, 400], [1, 0.8]);
+
   // 1. STATE QUẢN LÝ
-  const [activeTab, setActiveTab] = useState("SALE");
+  const [activeTab, setActiveTab] = useState("PROJECT");
   const [filters, setFilters] = useState({
     keyword: "",
     locationId: "all",
     typeId: "all",
     priceRangeIndex: 0,
+    areaRangeIndex: 0,
+    minBedrooms: "all",
+    rentalPeriod: "all",
   });
 
-  // Đồng bộ URL -> State
+  // --- LOGIC: ĐỒNG BỘ URL & LỌC DỮ LIỆU (GIỮ NGUYÊN) ---
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam && ["SALE", "RENT", "PROJECT"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
+    const keywordParam = searchParams.get("keyword");
+    const locationParam = searchParams.get("locationId");
+    const typeParam = searchParams.get("typeId");
+    const priceParam = searchParams.get("price");
+    const areaParam = searchParams.get("area");
+    const periodParam = searchParams.get("period");
+    const bedsParam = searchParams.get("beds");
+
+    setFilters({
+      keyword: keywordParam || "",
+      locationId: locationParam || "all",
+      typeId: typeParam || "all",
+      priceRangeIndex: priceParam ? Number(priceParam) : 0,
+      areaRangeIndex: areaParam ? Number(areaParam) : 0,
+      rentalPeriod: periodParam || "all",
+      minBedrooms: bedsParam || "all",
+    });
   }, [searchParams]);
+
+  const handleSearchAction = () => {
+    const params = new URLSearchParams();
+    params.set("tab", activeTab);
+    if (filters.keyword) params.set("keyword", filters.keyword);
+    if (filters.locationId !== "all")
+      params.set("locationId", filters.locationId);
+    if (filters.typeId !== "all") params.set("typeId", filters.typeId);
+    if (filters.priceRangeIndex > 0)
+      params.set("price", filters.priceRangeIndex);
+    if (
+      (activeTab === "SALE" || activeTab === "PROJECT") &&
+      filters.areaRangeIndex > 0
+    ) {
+      params.set("area", filters.areaRangeIndex);
+    }
+    if (activeTab === "RENT" && filters.rentalPeriod !== "all") {
+      params.set("period", filters.rentalPeriod);
+    }
+    if (filters.minBedrooms !== "all") {
+      params.set("beds", filters.minBedrooms);
+    }
+    setSearchParams(params);
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setSearchParams({ tab: tab });
     setFilters({
       keyword: "",
       locationId: "all",
       typeId: "all",
       priceRangeIndex: 0,
+      areaRangeIndex: 0,
+      minBedrooms: "all",
+      rentalPeriod: "all",
     });
+    setSearchParams({ tab: tab });
   };
 
-  // 2. LẤY DỮ LIỆU
+  // --- LẤY DỮ LIỆU & FILTER (GIỮ NGUYÊN) ---
   const propertyIds = useMemo(() => {
     return MOCK.listing && MOCK.listing.length > 0
       ? MOCK.listing
@@ -169,86 +310,164 @@ export default function PropertyListPage() {
       ? Object.keys(MOCK.entities.properties)
       : [];
   }, []);
+  const locations = TINH_THANH;
+  const visiblePropertyTypes = useMemo(() => {
+    const allTypes = Object.values(MOCK.entities.propertyTypes);
+    if (activeTab === "PROJECT")
+      return allTypes.filter((t) =>
+        [
+          "type_apartment",
+          "type_shophouse",
+          "type_office",
+          "type_hotel_resort",
+        ].includes(t.id)
+      );
+    if (activeTab === "SALE")
+      return allTypes.filter((t) =>
+        [
+          "type_townhouse",
+          "type_land",
+          "type_villa",
+          "type_factory",
+          "type_hotel_resort",
+        ].includes(t.id)
+      );
+    return allTypes;
+  }, [activeTab]);
 
-  const locations = Object.values(MOCK.entities.locations);
-  const propertyTypes = Object.values(MOCK.entities.propertyTypes);
-
-  // 3. LOGIC LỌC
   const filteredCards = useMemo(() => {
-    const list = propertyIds
-      .map((id) => selectPropertyCard(id))
-      .filter((item) => item !== null);
+    return propertyIds
+      .filter((id) => {
+        const rawProp = MOCK.entities.properties[id];
+        if (!rawProp) return false;
+        let category = "";
+        const hasLandArea =
+          rawProp.landArea && parseFloat(rawProp.landArea) > 0;
+        if (rawProp.transactionType === "RENT") category = "RENT";
+        else category = hasLandArea ? "SALE" : "PROJECT";
+        if (category !== activeTab) return false;
 
-    const listByTab = list.filter((c) => {
-      if (activeTab === "PROJECT") return c.isProject;
-      if (activeTab === "SALE")
-        return c.transactionType === "SALE" && !c.isProject;
-      if (activeTab === "RENT") return c.transactionType === "RENT";
-      return true;
-    });
+        const searchContent = [
+          rawProp.title,
+          MOCK.entities.locations[rawProp.locationId]?.name,
+          MOCK.entities.propertyTypes[rawProp.typeId]?.name,
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (
+          filters.keyword &&
+          !searchContent.includes(filters.keyword.toLowerCase())
+        )
+          return false;
 
-    return listByTab.filter((c) => {
-      const searchContent = [c.title, c.locationName, c.typeName]
-        .join(" ")
-        .toLowerCase();
-      const matchKeyword =
-        !filters.keyword ||
-        searchContent.includes(filters.keyword.toLowerCase());
-      const pLocId = MOCK.entities.properties[c.id]?.locationId;
-      const matchLocation =
-        filters.locationId === "all" || pLocId === filters.locationId;
-      const pTypeId = MOCK.entities.properties[c.id]?.typeId;
-      const matchType = filters.typeId === "all" || pTypeId === filters.typeId;
-      const rawPrice = parseFloat(MOCK.entities.properties[c.id]?.price || 0);
-      const range = PRICE_RANGES[activeTab][filters.priceRangeIndex];
-      const matchPrice = rawPrice >= range.min && rawPrice < range.max;
+        if (filters.locationId !== "all") {
+          const propLoc = MOCK.entities.locations[rawProp.locationId];
+          const parentLoc = propLoc?.parentId
+            ? MOCK.entities.locations[propLoc.parentId]
+            : null;
+          const isMatchSlug = (dbSlug, filterSlug) => {
+            if (!dbSlug || !filterSlug) return false;
+            if (dbSlug === filterSlug) return true;
+            if (filterSlug === "tp-hcm" && dbSlug.includes("ho-chi-minh"))
+              return true;
+            return false;
+          };
+          const matchSelf = isMatchSlug(propLoc?.slug, filters.locationId);
+          const matchParent = isMatchSlug(parentLoc?.slug, filters.locationId);
+          if (!matchSelf && !matchParent) return false;
+        }
+        if (filters.typeId !== "all" && rawProp.typeId !== filters.typeId)
+          return false;
 
-      return matchKeyword && matchLocation && matchType && matchPrice;
-    });
+        const rawPrice = parseFloat(rawProp.price || 0);
+        const pRange = PRICE_RANGES[activeTab][filters.priceRangeIndex];
+        if (pRange && (rawPrice < pRange.min || rawPrice >= pRange.max))
+          return false;
+
+        if (activeTab === "RENT" && filters.rentalPeriod !== "all") {
+          const unit = (rawProp.priceUnit || "").toLowerCase();
+          const isShortTerm = unit.includes("đêm") || unit.includes("ngày");
+          if (filters.rentalPeriod === "short_term" && !isShortTerm)
+            return false;
+          if (filters.rentalPeriod === "long_term" && isShortTerm) return false;
+        }
+
+        if (
+          (activeTab === "SALE" || activeTab === "PROJECT") &&
+          filters.areaRangeIndex > 0
+        ) {
+          const areaToCheck = hasLandArea
+            ? parseFloat(rawProp.landArea)
+            : parseFloat(rawProp.area);
+          const aRange = AREA_RANGES[filters.areaRangeIndex];
+          if (aRange && (areaToCheck < aRange.min || areaToCheck >= aRange.max))
+            return false;
+        }
+
+        if (filters.minBedrooms !== "all") {
+          const beds = rawProp.bedrooms || 0;
+          if (beds < Number(filters.minBedrooms)) return false;
+        }
+        return true;
+      })
+      .map((id) => selectPropertyCard(id));
   }, [propertyIds, activeTab, filters]);
 
-  // --- UI COMPONENTS NHỎ (GIỮ NGUYÊN) ---
+  // --- UI COMPONENTS HELPER ---
   const TabButton = ({ id, label, current }) => (
     <button
       onClick={() => handleTabChange(id)}
-      className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 relative ${
+      className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 relative overflow-hidden ${
         current === id
-          ? "text-white shadow-lg shadow-blue-900/20"
-          : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+          ? "text-white shadow-lg"
+          : "text-slate-600 hover:text-[#0E2038] hover:bg-white/60"
       }`}
     >
       {current === id && (
         <motion.div
           layoutId="activeTab"
           className="absolute inset-0 bg-[#0E2038] rounded-full"
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
       )}
-      <span className="relative z-10">{label}</span>
+      <span className="relative z-10 tracking-wide">{label}</span>
     </button>
   );
 
-  const CustomSelect = ({ icon: Icon, value, onChange, options, label }) => (
-    <div className="relative group w-full">
+  const CustomSelect = ({
+    icon: Icon,
+    value,
+    onChange,
+    options,
+    label,
+    defaultLabel = "Tất cả",
+  }) => (
+    <div className="relative group w-full transition-all duration-200">
       <div className="absolute left-0 top-3 text-slate-400 group-focus-within:text-[#0E2038] transition-colors">
         <Icon />
       </div>
-      <div className="pl-8 w-full">
-        <label className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-0.5">
+      <div className="pl-9 w-full">
+        <label className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-0.5 group-focus-within:text-blue-600 transition-colors">
           {label}
         </label>
         <div className="relative">
           <select
-            value={value}
+            value={value === 0 ? "all" : value}
             onChange={onChange}
-            className="w-full bg-transparent text-[#0E2038] font-medium py-1 pr-8 focus:outline-none cursor-pointer appearance-none truncate"
+            className="w-full bg-transparent text-[#0E2038] font-bold py-1 pr-8 focus:outline-none cursor-pointer appearance-none truncate border-b border-transparent group-focus-within:border-blue-100 transition-all"
           >
-            {options.map((opt, i) => (
-              <option key={i} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            <option value="all">{defaultLabel}</option>
+            {options.map((opt, i) => {
+              const val = opt.value ?? opt.id;
+              if (val === "all" || val === 0) return null;
+              return (
+                <option key={val ?? i} value={val}>
+                  {opt.label || opt.name}
+                </option>
+              );
+            })}
           </select>
-          <div className="absolute right-0 top-1.5 pointer-events-none text-slate-400">
+          <div className="absolute right-0 top-1.5 pointer-events-none text-slate-400 group-hover:text-[#0E2038] transition-colors">
             <Icons.ChevronDown />
           </div>
         </div>
@@ -257,128 +476,140 @@ export default function PropertyListPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* ================= UPDATE: HERO SECTION MỚI ================= */}
-      {/* Background Section - Tăng chiều cao lên 500px và dùng ảnh nền */}
-      <div className="relative h-[500px] rounded-b-[50px] overflow-hidden shadow-[0_20px_50px_rgba(8,24,44,0.2)] z-0">
-        {/* 1. Lớp Ảnh nền */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            // Sử dụng ảnh mẫu chất lượng cao (Bạn có thể thay link ảnh của bạn vào đây)
-            backgroundImage: `url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2053&q=80')`,
-          }}
-        />
+    <div className="min-h-screen bg-slate-50 font-sans" ref={containerRef}>
+      {/* --- HERO SECTION WITH PARALLAX & CURVE --- */}
+      {/* UPDATE: Chiều cao responsive: 450px cho mobile, 600px cho desktop */}
+      <div className="relative h-[450px] md:h-[600px] w-full overflow-hidden">
+        {/* 1. Background Image w/ Parallax */}
+        <motion.div
+          style={{ y: yRange, opacity: opacityRange }}
+          className="absolute inset-0"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2700&auto=format&fit=crop"
+            alt="Real Estate Cover"
+            className="w-full h-full object-cover"
+          />
 
-        {/* 2. Lớp phủ Gradient để tạo sự liền mạch */}
-        {/* Lớp tối tổng thể để text trắng dễ đọc */}
-        <div className="absolute inset-0 bg-black/30" />
-        {/* Gradient chính: Từ màu thương hiệu tối ở trên -> Xuống màu trắng mờ ở dưới đáy để hòa vào nền */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-50/95 via-[#0E2038]/50 to-[#0E2038]/80" />
+          {/* Lớp phủ tối để làm nổi text (Contrast Overlay) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-slate-900/30 to-slate-900/60" />
+        </motion.div>
 
-        {/* 3. Nội dung chữ */}
-        <div className="relative h-full flex flex-col items-center justify-center text-center px-4 pb-20">
+        {/* 2. (NEW) LỚP PHỦ GRADIENT NỐI NỀN */}
+        {/* Đây là lớp giúp ảnh hòa vào nền slate-50 bên dưới. 
+            Mobile cao 120px (h-32), Desktop cao 192px (h-48) */}
+        <div className="absolute bottom-0 left-0 w-full h-32 md:h-48 bg-gradient-to-t from-slate-50 via-slate-50/70 to-transparent z-10 pointer-events-none" />
+
+        {/* 3. Content Centered */}
+        {/* UPDATE: z-index tăng lên 20 để nổi trên lớp gradient nối */}
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4 pb-20 md:pb-28 z-20">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="max-w-4xl"
           >
-            <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-4 drop-shadow-lg">
-              Tìm kiếm{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-400">
-                tổ ấm
-              </span>{" "}
-              của bạn
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-block py-1 px-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] md:text-xs font-bold tracking-widest uppercase mb-3 md:mb-4"
+            >
+              Real Estate Platform
+            </motion.span>
+
+            {/* UPDATE: Font size responsive */}
+            <h1 className="text-3xl md:text-6xl font-black text-white mb-4 md:mb-6 tracking-tight leading-tight drop-shadow-lg">
+              {activeTab === "PROJECT" && "Kiến Tạo Cuộc Sống Mới"}
+              {activeTab === "SALE" && "Tìm Kiếm Ngôi Nhà Mơ Ước"}
+              {activeTab === "RENT" && "Trải Nghiệm Sống Đẳng Cấp"}
             </h1>
-            <p className="text-slate-200 text-lg md:text-xl font-medium max-w-2xl mx-auto drop-shadow-md">
-              Khám phá {propertyIds.length}+ bất động sản tiềm năng với thông
-              tin minh bạch.
+
+            <p className="text-slate-100 text-sm md:text-xl font-medium max-w-xs md:max-w-2xl mx-auto drop-shadow-md leading-relaxed opacity-90">
+              {activeTab === "PROJECT"
+                ? "Khám phá các dự án bất động sản tiềm năng với cơ hội đầu tư sinh lời vượt trội."
+                : activeTab === "SALE"
+                ? "Kết nối trực tiếp với hàng ngàn chủ nhà và môi giới uy tín trên toàn quốc."
+                : "Hệ thống tìm kiếm thông minh giúp bạn tìm thuê căn hộ ưng ý chỉ trong vài phút."}
             </p>
           </motion.div>
         </div>
       </div>
-      {/* ================= END UPDATE ================= */}
 
-      {/* SEARCH BAR - Floating (Nổi lên trên 2 phần) */}
-      <div className="max-w-6xl mx-auto px-4 -mt-28 relative z-20">
+      {/* --- FLOATING FILTER BAR --- */}
+      {/* UPDATE: Margin top âm điều chỉnh lại cho mobile (-mt-16) và desktop (-mt-32) */}
+      <div className="max-w-7xl mx-auto px-4 relative z-30 -mt-16 md:-mt-32">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="bg-white rounded-3xl shadow-[0_20px_40px_-10px_rgba(14,32,56,0.15)] p-2 backdrop-blur-xl bg-white/95 border border-white/50"
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="bg-white/90 backdrop-blur-xl rounded-[24px] md:rounded-[32px] shadow-[0_25px_50px_-12px_rgba(14,32,56,0.15)] p-5 md:p-8 border border-white/60"
         >
-          {/* Tabs Switcher */}
-          <div className="flex justify-center mb-6 pt-4">
-            <div className="bg-slate-100/80 p-1.5 rounded-full inline-flex">
-              <TabButton id="SALE" label="Mua Bán" current={activeTab} />
-              <TabButton id="RENT" label="Cho Thuê" current={activeTab} />
+          {/* TABS SWITCHER */}
+          <div className="flex justify-center mb-6 md:mb-8 overflow-x-auto scrollbar-hide">
+            <div className="bg-slate-100 p-1 md:p-1.5 rounded-full inline-flex shadow-inner whitespace-nowrap">
               <TabButton id="PROJECT" label="Dự Án" current={activeTab} />
+              <TabButton id="SALE" label="Nhà" current={activeTab} />
+              <TabButton id="RENT" label="Cho Thuê" current={activeTab} />
             </div>
           </div>
 
-          {/* Filter Inputs Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-0 md:divide-x divide-slate-100 pb-2 px-2 md:px-6">
-            {/* 1. Keyword Input */}
-            <div className="md:col-span-4 py-3 md:pr-6">
-              <div className="flex items-center gap-3 w-full h-full">
-                <div className="text-slate-400">
+          {/* INPUTS GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-y-6 md:gap-x-8 lg:gap-x-0 lg:divide-x divide-slate-200">
+            {/* 1. Keyword */}
+            <div className="lg:col-span-3 lg:pr-8 py-1">
+              <div className="flex items-center gap-3 md:gap-4 h-full group">
+                <div className="text-slate-400 group-focus-within:text-[#0E2038] transition-colors shrink-0">
                   <Icons.Search />
                 </div>
                 <div className="w-full">
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-0.5">
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-0.5 group-focus-within:text-blue-600 transition-colors">
                     Tìm kiếm
                   </label>
                   <input
                     type="text"
+                    placeholder={
+                      activeTab === "PROJECT"
+                        ? "Tên dự án..."
+                        : "Địa chỉ, đường..."
+                    }
                     value={filters.keyword}
                     onChange={(e) =>
                       setFilters({ ...filters, keyword: e.target.value })
                     }
-                    placeholder={
-                      activeTab === "PROJECT"
-                        ? "Tên dự án..."
-                        : "Nhập tên đường, địa chỉ..."
-                    }
-                    className="w-full bg-transparent text-[#0E2038] font-medium placeholder-slate-300 focus:outline-none"
+                    className="w-full bg-transparent font-bold text-[#0E2038] text-sm md:text-base placeholder-slate-300 focus:outline-none border-b border-transparent group-focus-within:border-blue-100 transition-all py-1 truncate"
                   />
                 </div>
               </div>
             </div>
 
-            {/* 2. Location Select */}
-            <div className="md:col-span-3 py-3 md:px-6">
-              <CustomSelect
-                icon={Icons.Location}
-                label="Khu vực"
-                value={filters.locationId}
-                onChange={(e) =>
-                  setFilters({ ...filters, locationId: e.target.value })
-                }
-                options={[
-                  { value: "all", label: "Toàn quốc" },
-                  ...locations.map((l) => ({ value: l.id, label: l.name })),
-                ]}
-              />
+            {/* 2. Select Groups - Mobile Layout optimization */}
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-none md:gap-0 md:contents">
+              <div className="lg:col-span-2 lg:px-8 py-1">
+                <CustomSelect
+                  icon={Icons.Location}
+                  label="Khu vực"
+                  value={filters.locationId}
+                  onChange={(e) =>
+                    setFilters({ ...filters, locationId: e.target.value })
+                  }
+                  options={locations}
+                />
+              </div>
+              <div className="lg:col-span-2 lg:px-8 py-1">
+                <CustomSelect
+                  icon={Icons.Home}
+                  label="Loại hình"
+                  value={filters.typeId}
+                  onChange={(e) =>
+                    setFilters({ ...filters, typeId: e.target.value })
+                  }
+                  options={visiblePropertyTypes}
+                />
+              </div>
             </div>
 
-            {/* 3. Type Select */}
-            <div className="md:col-span-3 py-3 md:px-6">
-              <CustomSelect
-                icon={Icons.Home}
-                label="Loại nhà đất"
-                value={filters.typeId}
-                onChange={(e) =>
-                  setFilters({ ...filters, typeId: e.target.value })
-                }
-                options={[
-                  { value: "all", label: "Tất cả loại hình" },
-                  ...propertyTypes.map((t) => ({ value: t.id, label: t.name })),
-                ]}
-              />
-            </div>
-
-            {/* 4. Price Select */}
-            <div className="md:col-span-2 py-3 md:pl-6">
+            <div className="lg:col-span-2 lg:px-8 py-1">
               <CustomSelect
                 icon={Icons.Dollar}
                 label="Mức giá"
@@ -386,97 +617,141 @@ export default function PropertyListPage() {
                 onChange={(e) =>
                   setFilters({
                     ...filters,
-                    priceRangeIndex: Number(e.target.value),
+                    priceRangeIndex:
+                      e.target.value === "all" ? 0 : Number(e.target.value),
                   })
                 }
-                options={PRICE_RANGES[activeTab].map((range, idx) => ({
-                  value: idx,
-                  label: range.label,
+                options={PRICE_RANGES[activeTab].map((r, i) => ({
+                  value: i,
+                  label: r.label,
                 }))}
               />
             </div>
+
+            {/* 3. Dynamic Fields */}
+            <div className="lg:col-span-3 lg:pl-8 py-1 flex gap-4 md:gap-6">
+              <div className="w-1/2">
+                {activeTab === "SALE" || activeTab === "PROJECT" ? (
+                  <CustomSelect
+                    icon={Icons.Area}
+                    label="Diện tích"
+                    value={filters.areaRangeIndex}
+                    onChange={(e) =>
+                      setFilters({
+                        ...filters,
+                        areaRangeIndex:
+                          e.target.value === "all" ? 0 : Number(e.target.value),
+                      })
+                    }
+                    options={AREA_RANGES.map((r, i) => ({
+                      value: i,
+                      label: r.label,
+                    }))}
+                  />
+                ) : (
+                  <CustomSelect
+                    icon={Icons.Calendar}
+                    label="Thời hạn"
+                    value={filters.rentalPeriod}
+                    onChange={(e) =>
+                      setFilters({ ...filters, rentalPeriod: e.target.value })
+                    }
+                    options={RENTAL_PERIODS}
+                  />
+                )}
+              </div>
+              <div className="w-1/2">
+                <CustomSelect
+                  icon={Icons.Bed}
+                  label="Phòng ngủ"
+                  value={filters.minBedrooms}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minBedrooms: e.target.value })
+                  }
+                  options={BEDROOM_OPTIONS}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Search Button Area */}
-          <div className="mt-2 pt-4 border-t border-slate-50 flex justify-end px-4 pb-2">
-            <button className="w-full md:w-auto bg-[#0E2038] hover:bg-blue-900 text-white px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-[#0E2038]/20 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2">
-              <Icons.Search />
-              <span>TÌM KIẾM NGAY</span>
+          {/* SEARCH BUTTON */}
+          <div className="mt-6 md:mt-8 flex justify-end">
+            <button
+              onClick={handleSearchAction}
+              className="w-full md:w-auto bg-[#0E2038] hover:bg-blue-900 text-white px-8 py-3.5 md:px-10 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm shadow-xl shadow-[#0E2038]/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 group"
+            >
+              <Icons.Filter />
+              <span>CẬP NHẬT KẾT QUẢ</span>
+              <div className="w-2 h-2 rounded-full bg-blue-400 group-hover:animate-ping" />
             </button>
           </div>
         </motion.div>
       </div>
 
-      {/* SECTION 2: RESULTS (GIỮ NGUYÊN) */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-16">
-        {/* Header Results */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <h2 className="text-3xl font-bold text-[#0E2038] mb-2 flex items-center gap-2">
-              {activeTab === "SALE"
-                ? "Nhà đất bán"
-                : activeTab === "RENT"
-                ? "Nhà đất cho thuê"
-                : "Dự án nổi bật"}
-              <span className="text-sm font-normal text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                {filteredCards.length} tin
-              </span>
-            </h2>
-            <p className="text-slate-500">
-              Kết quả tìm kiếm phù hợp với tiêu chí của bạn
-            </p>
-          </div>
-
-          {/* Nút sắp xếp (Placeholder) */}
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span>Sắp xếp theo:</span>
-            <select className="bg-white border border-slate-200 rounded-lg py-1.5 px-3 font-medium text-[#0E2038] focus:outline-none cursor-pointer hover:border-blue-500 transition-colors">
+      {/* --- RESULTS LIST --- */}
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 md:py-20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 md:mb-10 gap-4">
+          <motion.h2
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="text-2xl md:text-3xl font-bold text-[#0E2038] flex items-center gap-3 md:gap-4"
+          >
+            Kết quả tìm kiếm
+            <span className="bg-blue-100 text-blue-800 text-sm md:text-base py-1 px-3 md:px-4 rounded-full font-bold">
+              {filteredCards.length}
+            </span>
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <select className="w-full md:w-auto bg-white border border-slate-200 text-sm font-semibold px-4 py-2.5 md:px-5 md:py-3 rounded-lg md:rounded-xl focus:outline-none cursor-pointer hover:border-blue-400 transition-colors shadow-sm">
               <option>Mới nhất</option>
-              <option>Giá thấp đến cao</option>
-              <option>Giá cao đến thấp</option>
+              <option>Giá thấp - cao</option>
+              <option>Giá cao - thấp</option>
             </select>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Content Grid */}
+        {/* ... (Phần hiển thị grid kết quả giữ nguyên, chỉ chỉnh gap nhỏ nếu cần) ... */}
         <div className="min-h-[400px]">
           <AnimatePresence mode="wait">
             {filteredCards.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-dashed border-slate-200"
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="text-center py-20 md:py-32 bg-white rounded-[24px] md:rounded-[32px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center mx-auto"
               >
-                <div className="text-slate-200 mb-6">
+                <div className="text-slate-200 mb-6 bg-slate-50 p-6 rounded-full">
                   <Icons.Empty />
                 </div>
                 <h3 className="text-xl font-bold text-[#0E2038] mb-2">
-                  Không tìm thấy kết quả nào
+                  Không có kết quả phù hợp
                 </h3>
-                <p className="text-slate-400 text-center max-w-md mb-8">
-                  Rất tiếc, chúng tôi không tìm thấy bất động sản nào phù hợp
-                  với bộ lọc hiện tại của bạn.
+                <p className="text-slate-400 max-w-sm mx-auto px-4">
+                  Vui lòng thử lại với từ khóa khác hoặc điều chỉnh bộ lọc.
                 </p>
                 <button
                   onClick={() => handleTabChange(activeTab)}
-                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#0E2038] font-semibold rounded-xl transition-colors"
+                  className="mt-6 md:mt-8 text-sm font-bold text-[#0E2038] underline decoration-2 underline-offset-4 hover:text-blue-600 transition-colors"
                 >
-                  Xóa bộ lọc & Thử lại
+                  Xóa toàn bộ bộ lọc
                 </button>
               </motion.div>
             ) : (
               <motion.div
                 layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 xl:gap-8"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8"
               >
                 {filteredCards.map((c, i) => (
                   <motion.div
-                    layout
                     key={c.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-50px" }}
+                    layout
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05, duration: 0.4 }}
                   >
                     <PropertyCard propertyId={c.id} />

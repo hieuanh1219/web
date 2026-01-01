@@ -7,20 +7,27 @@ import { MOCK, selectPropertyCard } from "../hook/data";
 export default function ProductList() {
   const navigate = useNavigate();
 
-  // 1. Lấy dữ liệu từ data.js
+  // --- LOGIC ĐỒNG BỘ VỚI PROPERTYLISTPAGE ---
   const products = useMemo(() => {
-    // Lấy danh sách ID
     const allIds = MOCK.listing || Object.keys(MOCK.entities.properties);
 
-    // Map sang object và lọc
     return allIds
-      .map((id) => selectPropertyCard(id))
-      .filter((p) => p && p.transactionType === "SALE") // Chỉ lấy BĐS đang BÁN (Mua Nhà)
-      .slice(0, 8); // Giới hạn 8 sản phẩm
+      .filter((id) => {
+        const rawProp = MOCK.entities.properties[id];
+        if (!rawProp) return false;
+
+        // Logic "Mua Bán" (SALE) = Không phải thuê VÀ Có đất
+        const hasLandArea =
+          rawProp.landArea && parseFloat(rawProp.landArea) > 0;
+        const isRent = rawProp.transactionType === "RENT";
+
+        return !isRent && hasLandArea;
+      })
+      .slice(0, 8)
+      .map((id) => selectPropertyCard(id));
   }, []);
 
   const handleViewMore = () => {
-    // Chuyển sang trang danh sách với tab MUA NHÀ
     navigate("/properties?tab=SALE");
   };
 
@@ -68,7 +75,7 @@ export default function ProductList() {
         <div className="mt-16 flex justify-center">
           <button
             onClick={handleViewMore}
-            className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-[#0E2038] px-8 py-4 font-bold text-white shadow-lg transition-all hover:bg-[#1a3a63] hover:shadow-xl hover:shadow-[#0E2038]/20 active:scale-95"
+            className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border-2 border-[#0E2038] bg-transparent px-8 py-4 font-bold text-[#0E2038] transition-all hover:bg-[#0E2038] hover:text-white active:scale-95"
           >
             <span>Xem tất cả nhà đất</span>
             <span className="transition-transform duration-300 group-hover:translate-x-1">

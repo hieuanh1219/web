@@ -1,10 +1,10 @@
 // src/components/SearchSection.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MOCK } from "../hook/data";
 import TINH_THANH from "../hook/datatinhthanh";
 
-// Import Icon từ Lucide React
+// Import Icon
 import {
   Search,
   MapPin,
@@ -16,9 +16,11 @@ import {
   Key,
   Building,
   ArrowRight,
+  ScanLine,
+  CalendarDays,
 } from "lucide-react";
 
-// --- CẤU HÌNH GIÁ (GIỮ NGUYÊN) ---
+/* --- 1. CONFIG DATA (GIỮ NGUYÊN) --- */
 const PRICE_RANGES = {
   SALE: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
@@ -30,10 +32,9 @@ const PRICE_RANGES = {
   ],
   RENT: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
-    { label: "Dưới 10 triệu", min: 0, max: 10000000 },
-    { label: "10 - 30 triệu", min: 10000000, max: 30000000 },
-    { label: "30 - 50 triệu", min: 30000000, max: 50000000 },
-    { label: "Trên 50 triệu", min: 50000000, max: Infinity },
+    { label: "Dưới 5 triệu", min: 0, max: 5000000 },
+    { label: "5 - 15 triệu", min: 5000000, max: 15000000 },
+    { label: "Trên 15 triệu", min: 15000000, max: Infinity },
   ],
   PROJECT: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
@@ -43,25 +44,68 @@ const PRICE_RANGES = {
   ],
 };
 
+const AREA_RANGES = [
+  { label: "Tất cả diện tích", min: 0, max: Infinity },
+  { label: "Dưới 50m²", min: 0, max: 50 },
+  { label: "50 - 80m²", min: 50, max: 80 },
+  { label: "80 - 150m²", min: 80, max: 150 },
+  { label: "Trên 150m²", min: 150, max: Infinity },
+];
+
+const RENTAL_PERIODS = [
+  { label: "Tất cả", value: "all" },
+  { label: "Dài hạn (Tháng/Năm)", value: "long_term" },
+  { label: "Ngắn hạn (Ngày/Đêm)", value: "short_term" },
+];
+
 export default function SearchSection() {
   const navigate = useNavigate();
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 1. STATE QUẢN LÝ
+  // Hiệu ứng load trang
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  // 2. STATE QUẢN LÝ
   const [activeTab, setActiveTab] = useState("PROJECT");
   const [filters, setFilters] = useState({
     keyword: "",
     locationId: "all",
     typeId: "all",
     priceRangeIndex: 0,
+    areaRangeIndex: 0,
+    rentalPeriod: "all",
   });
 
-  // 2. LẤY DỮ LIỆU
-  const propertyTypes = useMemo(
-    () => Object.values(MOCK.entities.propertyTypes),
-    []
-  );
+  // 3. LOGIC LỌC
+  const visiblePropertyTypes = useMemo(() => {
+    const allTypes = Object.values(MOCK.entities.propertyTypes);
+    if (activeTab === "PROJECT") {
+      return allTypes.filter((t) =>
+        [
+          "type_apartment",
+          "type_shophouse",
+          "type_office",
+          "type_hotel_resort",
+        ].includes(t.id)
+      );
+    }
+    if (activeTab === "SALE") {
+      return allTypes.filter((t) =>
+        [
+          "type_townhouse",
+          "type_land",
+          "type_villa",
+          "type_factory",
+          "type_hotel_resort",
+        ].includes(t.id)
+      );
+    }
+    return allTypes;
+  }, [activeTab]);
 
-  // 3. HANDLERS
+  // 4. HANDLERS
   const handleSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -70,7 +114,18 @@ export default function SearchSection() {
     if (filters.locationId !== "all")
       params.set("locationId", filters.locationId);
     if (filters.typeId !== "all") params.set("typeId", filters.typeId);
+    if (filters.priceRangeIndex > 0)
+      params.set("price", filters.priceRangeIndex);
 
+    if (
+      (activeTab === "SALE" || activeTab === "PROJECT") &&
+      filters.areaRangeIndex > 0
+    ) {
+      params.set("area", filters.areaRangeIndex);
+    }
+    if (activeTab === "RENT" && filters.rentalPeriod !== "all") {
+      params.set("period", filters.rentalPeriod);
+    }
     navigate(`/properties?${params.toString()}`);
   };
 
@@ -80,272 +135,308 @@ export default function SearchSection() {
       locationId: "all",
       typeId: "all",
       priceRangeIndex: 0,
+      areaRangeIndex: 0,
+      rentalPeriod: "all",
     });
   };
 
-  // --- UI HELPER: Custom Select Wrapper ---
+  /* --- UI COMPONENTS --- */
+
+  // Custom Select Component: Sang trọng & Tối giản
   const CustomSelect = ({
-    icon: Icon, // Nhận component Icon
+    icon: Icon,
     label,
     value,
     onChange,
     options,
     defaultLabel = "Tất cả",
   }) => (
-    <div className="relative group w-full">
-      <div className="flex items-center h-[64px] bg-white/5 border border-white/10 rounded-2xl px-5 transition-all duration-300 group-hover:bg-white/10 group-focus-within:bg-white/15 group-focus-within:border-yellow-400/50 group-focus-within:ring-4 group-focus-within:ring-yellow-400/10 backdrop-blur-md">
-        {/* Icon container với hiệu ứng glow nhẹ */}
-        <div className="text-slate-400 group-focus-within:text-yellow-400 transition-colors mr-4 p-2 rounded-lg bg-white/5 group-focus-within:bg-yellow-400/10">
-          <Icon size={20} strokeWidth={2} />
-        </div>
-
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <label className="text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 truncate group-focus-within:text-yellow-400 transition-colors">
-            {label}
-          </label>
-
-          <div className="relative">
-            <select
-              value={value}
-              onChange={onChange}
-              className="w-full bg-transparent text-white font-semibold text-[15px] appearance-none focus:outline-none cursor-pointer absolute inset-0 opacity-0 z-10"
-            >
-              <option value="all" className="text-slate-900">
-                {defaultLabel}
-              </option>
-              {options.map((opt, idx) => {
-                const val = opt.value || opt.id || idx;
-                const lab = opt.label || opt.name || opt.label;
-                return (
-                  <option key={val} value={val} className="text-slate-900">
-                    {lab}
-                  </option>
-                );
-              })}
-            </select>
-
-            <div className="text-white/90 font-medium truncate pr-4">
-              {(() => {
-                if (value === "all" || value === 0) return defaultLabel;
-                const found = options.find(
-                  (o) =>
-                    o.value === value ||
-                    o.id === value ||
-                    options.indexOf(o) === value
-                );
-                return found ? found.label || found.name : defaultLabel;
-              })()}
+    <div className="relative w-full group">
+      <div className="flex flex-col h-[72px] justify-center px-4 md:px-5 rounded-xl border border-white/10 bg-black/20 backdrop-blur-md transition-all duration-300 hover:bg-black/40 hover:border-amber-400/30 group-focus-within:bg-black/50 group-focus-within:border-amber-400 group-focus-within:ring-1 group-focus-within:ring-amber-400/50">
+        <div className="flex items-center gap-3">
+          <Icon
+            size={18}
+            className="text-slate-400 group-focus-within:text-amber-400 transition-colors duration-300"
+            strokeWidth={1.5}
+          />
+          <div className="flex-1 overflow-hidden">
+            <span className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-amber-400 transition-colors">
+              {label}
+            </span>
+            <div className="relative">
+              <select
+                value={value === 0 ? "all" : value}
+                onChange={onChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              >
+                <option value="all">{defaultLabel}</option>
+                {options.map((opt, idx) => {
+                  const val = opt.value ?? opt.id ?? idx;
+                  if (val === "all" || val === 0) return null;
+                  return (
+                    <option key={val} value={val} className="text-slate-900">
+                      {opt.label || opt.name}
+                    </option>
+                  );
+                })}
+              </select>
+              <div className="text-white text-sm md:text-[15px] font-medium truncate pr-4 leading-tight">
+                {(() => {
+                  if (value === "all" || value === 0) return defaultLabel;
+                  if (typeof value === "number") {
+                    const found = options.find(
+                      (o, idx) => idx === value || o.value === value
+                    );
+                    return found ? found.label || found.name : defaultLabel;
+                  }
+                  const found = options.find(
+                    (o) => o.value === value || o.id === value
+                  );
+                  return found ? found.label || found.name : defaultLabel;
+                })()}
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="absolute right-4 text-slate-500 group-focus-within:text-yellow-400 pointer-events-none transition-colors">
-          <ChevronDown size={16} />
+          <ChevronDown
+            size={14}
+            className="text-slate-500 group-focus-within:text-amber-400 transition-colors"
+          />
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden font-sans">
-      {/* 1. BACKGROUND IMAGE */}
-      <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transform hover:scale-105 transition-transform duration-[20s]"
-        style={{ backgroundImage: "url('/anhnen.jpg')" }}
-      />
+    <div className="relative w-full h-screen overflow-hidden font-sans text-slate-200">
+      {/* 1. BACKGROUND LAYER */}
+      <div className="absolute inset-0 w-full h-full">
+        {/* Ảnh nền chất lượng cao */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-[30s] ease-linear hover:scale-105"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2560&q=80')",
+          }}
+        />
+        {/* Overlay tối để nổi bật text */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
+        {/* Noise texture tạo chất liệu điện ảnh */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
+        ></div>
+      </div>
 
-      {/* 2. OVERLAY CAO CẤP */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/90 via-slate-900/60 to-slate-900/90" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+      {/* 2. MAIN CONTENT CONTAINER */}
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
+        {/* HEADINGS */}
+        <div
+          className={`text-center mb-10 transition-all duration-1000 transform ${
+            isLoaded ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+          }`}
+        >
 
-      {/* 3. MAIN CONTENT */}
-      <div className="relative z-10 w-full max-w-7xl px-4 flex flex-col items-center justify-center h-full">
-        {/* HERO TEXT */}
-        <div className="text-center mb-12 space-y-8 animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-2xl ring-1 ring-white/20">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-            </span>
-            <span className="text-xs font-bold text-white uppercase tracking-widest">
-              Hệ thống BĐS SỐ 1 VIỆT NAM
-            </span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl">
-            Khởi Đầu <br className="md:hidden" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 animate-gradient-x">
-              Thịnh Vượng
+          <h1 className="font-extralight text-4xl md:text-6xl lg:text-7xl font-extralight text-white leading-tight mb-4 drop-shadow-2xl">
+            Không gian sống <br className="hidden md:block" />
+            <span className="italic text-amber-400 font-extralight">
+              Đẳng cấp thượng lưu
             </span>
           </h1>
 
-          <p className="text-slate-300 text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
-            Khám phá hơn{" "}
-            <strong className="text-white font-bold">200+</strong> bất động
-            sản{" "}
-            {activeTab === "PROJECT"
-              ? "dự án cao cấp"
-              : activeTab === "SALE"
-              ? "đang giao dịch"
-              : "cho thuê"}{" "}
-            tại những vị trí đắc địa nhất.
+          <p className="text-slate-300 font-light text-sm md:text-lg max-w-2xl mx-auto tracking-wide">
+            Tìm kiếm ngôi nhà mơ ước trong bộ sưu tập{" "}
+            <span className="text-white font-medium">độc bản</span> của chúng
+            tôi.
           </p>
         </div>
 
-        {/* 4. SEARCH BOX CONTAINER */}
-        <div className="w-full bg-slate-900/40 border border-white/10 backdrop-blur-2xl rounded-[40px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] overflow-visible">
-          {/* TABS HEADER */}
-          <div className="flex justify-center md:justify-start px-8 pt-6 pb-2 gap-2">
-            {[
-              { id: "PROJECT", label: "Dự Án", icon: Building },
-              { id: "SALE", label: "Mua Bán", icon: Home },
-              { id: "RENT", label: "Cho Thuê", icon: Key },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              const TabIcon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setFilters({ ...filters, priceRangeIndex: 0 });
-                  }}
-                  className={`
-                    relative group flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-300
-                    ${
-                      isActive
-                        ? "bg-white text-slate-900 shadow-lg shadow-white/10 scale-105"
-                        : "bg-transparent text-slate-400 hover:text-white hover:bg-white/5"
-                    }
-                  `}
-                >
-                  <TabIcon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                  <span
-                    className={`text-sm font-bold tracking-wide ${
-                      isActive ? "opacity-100" : "opacity-80"
-                    }`}
+        {/* 3. GLASS FORM WRAPPER */}
+        <div
+          className={`w-full max-w-6xl transition-all duration-1000 delay-200 transform ${
+            isLoaded ? "translate-y-0 opacity-97" : "translate-y-12 opacity-0"
+          }`}
+        >
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[30px] shadow-2xl overflow-hidden">
+            {/* TABS SELECTOR */}
+            <div className="flex flex-col md:flex-row border-b border-white/5">
+              {[
+                { id: "PROJECT", label: "Dự Án", icon: Building },
+                { id: "SALE", label: "Nhà", icon: Home },
+                { id: "RENT", label: "Cho Thuê", icon: Key },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setFilters((prev) => ({
+                        ...prev,
+                        priceRangeIndex: 0,
+                        areaRangeIndex: 0,
+                        rentalPeriod: "all",
+                        typeId: "all",
+                      }));
+                    }}
+                    className={`relative flex-1 py-5 flex items-center justify-center gap-3 transition-all duration-300 group
+                      ${
+                        isActive
+                          ? "bg-white/10 text-white"
+                          : "hover:bg-white/5 text-slate-400 hover:text-white"
+                      }
+                    `}
                   >
-                    {tab.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <tab.icon
+                      size={18}
+                      strokeWidth={1.5}
+                      className={isActive ? "text-amber-400" : ""}
+                    />
+                    <span className="text-sm font-bold tracking-widest uppercase">
+                      {tab.label}
+                    </span>
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* SEARCH FORM */}
-          <form onSubmit={handleSearch} className="p-6 md:p-8">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              {/* Keyword Input */}
-              <div className="md:col-span-12 lg:col-span-4">
-                <div className="relative group w-full h-full">
-                  <div className="flex items-center h-[64px] bg-white/5 border border-white/10 rounded-2xl px-5 transition-all duration-300 group-hover:bg-white/10 group-focus-within:bg-white/15 group-focus-within:border-yellow-400/50 group-focus-within:ring-4 group-focus-within:ring-yellow-400/10 backdrop-blur-md">
-                    <div className="text-slate-400 group-focus-within:text-yellow-400 mr-4 p-2 rounded-lg bg-white/5 group-focus-within:bg-yellow-400/10 transition-colors">
-                      <Search size={20} strokeWidth={2} />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-yellow-400 transition-colors">
-                        Từ khóa tìm kiếm
-                      </label>
-                      <input
-                        type="text"
-                        value={filters.keyword}
-                        onChange={(e) =>
-                          setFilters({ ...filters, keyword: e.target.value })
-                        }
-                        placeholder={
-                          activeTab === "PROJECT"
-                            ? "Vinhomes, EcoPark..."
-                            : "Nhập địa chỉ, đường..."
-                        }
-                        className="w-full bg-transparent text-white font-semibold text-[15px] placeholder-slate-500 focus:outline-none"
+            {/* SEARCH INPUTS */}
+            <form onSubmit={handleSearch} className="p-6 md:p-8 lg:p-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+                {/* Keyword Search */}
+                <div className="lg:col-span-3">
+                  <div className="relative w-full h-[72px] rounded-xl border border-white/10 bg-black/20 backdrop-blur-md flex flex-col justify-center px-5 transition-all duration-300 hover:bg-black/40 hover:border-amber-400/30 group focus-within:bg-black/50 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/50">
+                    <div className="flex items-center gap-3">
+                      <Search
+                        size={18}
+                        className="text-slate-400 group-focus-within:text-amber-400 transition-colors"
                       />
+                      <div className="flex-1">
+                        <label className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-amber-400 transition-colors">
+                          Từ khóa
+                        </label>
+                        <input
+                          type="text"
+                          value={filters.keyword}
+                          onChange={(e) =>
+                            setFilters({ ...filters, keyword: e.target.value })
+                          }
+                          placeholder={
+                            activeTab === "PROJECT"
+                              ? "Tên dự án..."
+                              : "Tìm địa chỉ, đường..."
+                          }
+                          className="w-full bg-transparent text-white text-sm md:text-[15px] font-medium placeholder-slate-600 focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Dropdowns */}
+                <div className="lg:col-span-3">
+                  <CustomSelect
+                    icon={MapPin}
+                    label="Khu vực"
+                    value={filters.locationId}
+                    onChange={(e) =>
+                      setFilters({ ...filters, locationId: e.target.value })
+                    }
+                    options={TINH_THANH}
+                    defaultLabel="Toàn quốc"
+                  />
+                </div>
+
+                <div className="lg:col-span-2">
+                  <CustomSelect
+                    icon={Building2}
+                    label="Loại hình"
+                    value={filters.typeId}
+                    onChange={(e) =>
+                      setFilters({ ...filters, typeId: e.target.value })
+                    }
+                    options={visiblePropertyTypes}
+                    defaultLabel="Tất cả"
+                  />
+                </div>
+
+                <div className="lg:col-span-2">
+                  <CustomSelect
+                    icon={Wallet}
+                    label="Mức giá"
+                    value={filters.priceRangeIndex}
+                    onChange={(e) =>
+                      setFilters({
+                        ...filters,
+                        priceRangeIndex:
+                          e.target.value === "all" ? 0 : Number(e.target.value),
+                      })
+                    }
+                    options={PRICE_RANGES[activeTab]}
+                  />
+                </div>
+
+                <div className="lg:col-span-2">
+                  {activeTab === "RENT" ? (
+                    <CustomSelect
+                      icon={CalendarDays}
+                      label="Thời hạn"
+                      value={filters.rentalPeriod}
+                      onChange={(e) =>
+                        setFilters({ ...filters, rentalPeriod: e.target.value })
+                      }
+                      options={RENTAL_PERIODS}
+                    />
+                  ) : (
+                    <CustomSelect
+                      icon={ScanLine}
+                      label="Diện tích"
+                      value={filters.areaRangeIndex}
+                      onChange={(e) =>
+                        setFilters({
+                          ...filters,
+                          areaRangeIndex:
+                            e.target.value === "all"
+                              ? 0
+                              : Number(e.target.value),
+                        })
+                      }
+                      options={AREA_RANGES}
+                    />
+                  )}
+                </div>
               </div>
 
-              {/* Location Select */}
-              <div className="md:col-span-6 lg:col-span-3">
-                <CustomSelect
-                  icon={MapPin}
-                  label="Khu vực"
-                  value={filters.locationId}
-                  onChange={(e) =>
-                    setFilters({ ...filters, locationId: e.target.value })
-                  }
-                  options={TINH_THANH}
-                  defaultLabel="Toàn quốc"
-                />
+              {/* ACTION BUTTONS */}
+              <div className="mt-8 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider hover:text-white transition-colors group"
+                >
+                  <RotateCcw
+                    size={14}
+                    className="group-hover:-rotate-180 transition-transform duration-500"
+                  />
+                  Xóa bộ lọc
+                </button>
+
+                <button
+                  type="submit"
+                  className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-amber-400 to-yellow-600 hover:from-amber-300 hover:to-yellow-500 text-black font-bold text-sm uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transform hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
+                >
+                  <Search size={18} strokeWidth={2.5} />
+                  <span>Tìm Kiếm</span>
+                  <ArrowRight size={18} strokeWidth={2.5} />
+                </button>
               </div>
-
-              {/* Type Select */}
-              <div className="md:col-span-6 lg:col-span-3">
-                <CustomSelect
-                  icon={Building2}
-                  label="Loại hình"
-                  value={filters.typeId}
-                  onChange={(e) =>
-                    setFilters({ ...filters, typeId: e.target.value })
-                  }
-                  options={propertyTypes}
-                  defaultLabel="Tất cả"
-                />
-              </div>
-
-              {/* Price Select */}
-              <div className="md:col-span-12 lg:col-span-2">
-                <CustomSelect
-                  icon={Wallet}
-                  label="Mức giá"
-                  value={filters.priceRangeIndex}
-                  onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      priceRangeIndex: Number(e.target.value),
-                    })
-                  }
-                  options={PRICE_RANGES[activeTab]}
-                />
-              </div>
-            </div>
-
-            {/* ACTION BUTTONS */}
-            <div className="mt-8 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/5">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="group flex items-center gap-2 px-6 py-3 rounded-xl text-slate-400 text-sm font-bold hover:text-white hover:bg-white/5 transition-all w-full sm:w-auto justify-center"
-              >
-                <RotateCcw
-                  size={16}
-                  className="group-hover:-rotate-180 transition-transform duration-500"
-                />
-                <span>Làm mới bộ lọc</span>
-              </button>
-
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-white font-bold text-lg shadow-[0_10px_30px_rgba(251,191,36,0.25)] hover:shadow-[0_20px_50px_rgba(251,191,36,0.4)] hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 skew-y-12"></div>
-                <Search size={22} strokeWidth={2.5} />
-                <span className="uppercase tracking-wide">Tìm kiếm</span>
-                <ArrowRight
-                  size={20}
-                  className="group-hover:translate-x-1 transition-transform"
-                />
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
-
-      {/* Scroll Down Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-        <div className="w-[1px] h-12 bg-gradient-to-b from-transparent via-white to-transparent"></div>
-        <span className="text-[10px] text-white uppercase tracking-[0.2em]">
-          Khám phá
-        </span>
       </div>
     </div>
   );

@@ -7,20 +7,31 @@ import { MOCK, selectPropertyCard } from "../hook/data";
 export default function ProjectList() {
   const navigate = useNavigate();
 
-  // 1. Lấy dữ liệu và lọc Dự án
+  // --- LOGIC ĐỒNG BỘ VỚI PROPERTYLISTPAGE ---
   const projects = useMemo(() => {
-    // Lấy danh sách ID
     const allIds = MOCK.listing || Object.keys(MOCK.entities.properties);
 
-    // Map sang object và lọc
     return allIds
-      .map((id) => selectPropertyCard(id))
-      .filter((p) => p && p.isProject) // Lọc theo cờ isProject (đã định nghĩa trong data.js)
-      .slice(0, 8); // Giới hạn 8 dự án
+      .filter((id) => {
+        // 1. Lấy dữ liệu thô để kiểm tra
+        const rawProp = MOCK.entities.properties[id];
+        if (!rawProp) return false;
+
+        // 2. Áp dụng đúng logic của PropertyListPage
+        const hasLandArea =
+          rawProp.landArea && parseFloat(rawProp.landArea) > 0;
+        const isRent = rawProp.transactionType === "RENT";
+
+        // PROJECT = Không phải thuê VÀ Không có đất
+        const isProject = !isRent && !hasLandArea;
+
+        return isProject;
+      })
+      .slice(0, 8) // Giới hạn 8
+      .map((id) => selectPropertyCard(id)); // Map sang data hiển thị sau khi đã lọc
   }, []);
 
   const handleViewMore = () => {
-    // Chuyển sang trang danh sách với tab DỰ ÁN
     navigate("/properties?tab=PROJECT");
   };
 

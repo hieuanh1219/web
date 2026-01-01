@@ -329,21 +329,65 @@ export default function PropertyDetailPage() {
             {/* E. LOCATION */}
             <section ref={setSectionRef("location")}>
               <SectionHeader title="Vị trí" />
-              <p className="text-lg text-slate-600 mb-6">{detail.address}</p>
-              <div className="w-full h-[400px] bg-slate-100 relative grayscale hover:grayscale-0 transition duration-700">
-                <img
-                  src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80"
-                  className="w-full h-full object-cover opacity-80"
-                  alt="Map"
-                />
-                <a
-                  href={`http://googleusercontent.com/maps.google.com/6{detail.latitude},${detail.longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="absolute bottom-4 left-4 bg-white text-[#0E2038] px-6 py-3 font-bold shadow-lg hover:bg-[#0E2038] hover:text-white transition"
-                >
-                  Mở Google Maps
-                </a>
+              <p className="text-lg text-slate-600 mb-6 flex items-center gap-2">
+                <span className="text-red-500">📍</span>
+                {detail.address}
+              </p>
+
+              <div className="w-full h-[450px] bg-slate-100 rounded-2xl overflow-hidden relative shadow-sm border border-slate-200">
+                {detail.latitude && detail.longitude ? (
+                  <>
+                    {/* 1. Bản đồ tương tác (Iframe) */}
+                    <iframe
+                      title="Google Map Location"
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      marginHeight="0"
+                      marginWidth="0"
+                      // z=15: độ zoom, hl=vi: ngôn ngữ tiếng Việt
+                      src={`https://maps.google.com/maps?q=${detail.latitude},${detail.longitude}&hl=vi&z=15&output=embed`}
+                      className="w-full h-full grayscale-[20%] hover:grayscale-0 transition duration-500"
+                    ></iframe>
+
+                    {/* 2. Nút mở sang trang Google Maps (Overlay) */}
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${detail.latitude},${detail.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="absolute bottom-5 left-5 bg-white text-[#0E2038] px-5 py-3 rounded-xl font-bold shadow-lg hover:bg-[#0E2038] hover:text-white transition-all transform hover:-translate-y-1 flex items-center gap-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                        />
+                      </svg>
+                      Mở rộng bản đồ
+                    </a>
+                  </>
+                ) : (
+                  // Fallback nếu không có tọa độ
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                    <svg
+                      className="w-16 h-16 mb-4 opacity-20"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                    </svg>
+                    <span className="text-sm">Chưa cập nhật tọa độ bản đồ</span>
+                  </div>
+                )}
               </div>
             </section>
 

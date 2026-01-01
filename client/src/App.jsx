@@ -3,10 +3,8 @@ import MainLayout from "./layouts/MainLayout";
 
 import Home from "./pages/Home";
 
-
 import PropertyDetailPage from "./pages/PropertyDetailPage";
 import PropertyListPage from "./pages/PropertyListPage";
-
 function App() {
   return (
     <Router>
