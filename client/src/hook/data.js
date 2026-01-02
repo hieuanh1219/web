@@ -198,7 +198,7 @@ export const MOCK = {
       prop_001: {
         id: "prop_001",
         title:
-          "Căn hộ 3PN Masteri Thảo Điền, full nội thất, view sông (Tầng cao)",
+          "CĂN HỘ MASTERI THẢO ĐIỀN, NỘI THẤT VIEW SÔNG",
         slug: "can-ho-3pn-masteri-thao-dien-full-noi-that-view-song-001",
         description: `
           BÁN CĂN HỘ 3 PHÒNG NGỦ MASTERI THẢO ĐIỀN - TẦM NHÌN SÔNG SÀI GÒN TUYỆT ĐẸP
@@ -326,7 +326,7 @@ Pháp lý căn hộ hoàn chỉnh, đã có sổ hồng riêng. Giá bán mong m
       // 4. Nhà phố bán
       prop_004: {
         id: "prop_004",
-        title: "Nhà phố liền kề Phú Mỹ Hưng, 5x20m, xây 4 tầng",
+        title: "NHÀ PHỐ LIỀN KỀ PHỐ MỸ HƯNG",
         slug: "nha-pho-phu-my-hung-quan-7",
         description:
           "Khu vực an ninh, gần trường quốc tế SSIS. Đang có hợp đồng thuê.",

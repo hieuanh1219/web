@@ -15,15 +15,15 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <section id="project_featured">
-        <Reveal>
-          <Project_Featured />
-        </Reveal>
-      </section>
-
       <section id="project">
         <Reveal>
           <ProjectList />
+        </Reveal>
+      </section>
+      
+      <section id="project_featured">
+        <Reveal>
+          <Project_Featured />
         </Reveal>
       </section>
 
