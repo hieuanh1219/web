@@ -210,7 +210,7 @@ export default function HomeFeatured() {
               </div>
 
               {/* Title */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extralight leading-tight text-white mb-4">
+              <h1 className="text-4xl md:text-5xl uppercase lg:text-6xl font-sangtrong leading-tight text-white mb-4">
                 {featured.title}
               </h1>
 

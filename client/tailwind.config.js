@@ -3,6 +3,9 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sangtrong: ['tieude'],
+      },
       colors: {
         "xanh-than": "#0E2038"
       },

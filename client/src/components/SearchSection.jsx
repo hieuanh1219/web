@@ -1,10 +1,9 @@
 // src/components/SearchSection.jsx
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { MOCK } from "../hook/data";
 import TINH_THANH from "../hook/datatinhthanh";
 
-// Import Icon
 import {
   Search,
   MapPin,
@@ -58,14 +57,32 @@ const RENTAL_PERIODS = [
   { label: "Ngắn hạn (Ngày/Đêm)", value: "short_term" },
 ];
 
+/* =========================
+   HELPERS: AUTOCOMPLETE
+========================= */
+const normalize = (s = "") =>
+  s
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // bỏ dấu tiếng Việt
+    .trim();
+
+const isProjectByFE = (p) => !p?.landArea || parseFloat(p.landArea) === 0;
+
+const matchPropertyToTab = (p, tab) => {
+  if (!p) return false;
+  if (tab === "SALE") return p.transactionType === "SALE";
+  if (tab === "RENT") return p.transactionType === "RENT";
+  if (tab === "PROJECT") return isProjectByFE(p);
+  return true;
+};
+
 export default function SearchSection() {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Hiệu ứng load trang
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
+  useEffect(() => setIsLoaded(true), []);
 
   // 2. STATE QUẢN LÝ
   const [activeTab, setActiveTab] = useState("PROJECT");
@@ -78,7 +95,7 @@ export default function SearchSection() {
     rentalPeriod: "all",
   });
 
-  // 3. LOGIC LỌC
+  // 3. LOGIC LỌC TYPE
   const visiblePropertyTypes = useMemo(() => {
     const allTypes = Object.values(MOCK.entities.propertyTypes);
     if (activeTab === "PROJECT") {
@@ -105,7 +122,7 @@ export default function SearchSection() {
     return allTypes;
   }, [activeTab]);
 
-  // 4. HANDLERS
+  // 4. HANDLERS SEARCH LIST (giữ nguyên)
   const handleSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -140,9 +157,138 @@ export default function SearchSection() {
     });
   };
 
-  /* --- UI COMPONENTS --- */
+  /* =========================
+     AUTOCOMPLETE: FULL
+  ========================= */
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const suggestWrapRef = useRef(null);
 
-  // Custom Select Component: Sang trọng & Tối giản
+  // click outside => đóng gợi ý
+  useEffect(() => {
+    const onDown = (e) => {
+      if (!suggestWrapRef.current) return;
+      if (!suggestWrapRef.current.contains(e.target)) {
+        setShowSuggest(false);
+        setHighlightIndex(-1);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  // build indexes: tags/amenities/features theo propertyId để search thêm keyword
+  const searchIndex = useMemo(() => {
+    const e = MOCK.entities;
+
+    const tagsByProp = (e.propertyTags || []).reduce((acc, x) => {
+      (acc[x.propertyId] ||= []).push(e.tags?.[x.tagId]?.name);
+      return acc;
+    }, {});
+
+    const amenitiesByProp = (e.propertyAmenities || []).reduce((acc, x) => {
+      (acc[x.propertyId] ||= []).push(e.amenities?.[x.amenityId]?.name);
+      return acc;
+    }, {});
+
+    const featuresByProp = Object.values(e.propertyFeatures || {}).reduce(
+      (acc, x) => {
+        (acc[x.propertyId] ||= []).push(x.value);
+        return acc;
+      },
+      {}
+    );
+
+    return { tagsByProp, amenitiesByProp, featuresByProp };
+  }, []);
+
+  // suggestions dạng card (property)
+  const propertySuggestions = useMemo(() => {
+    const q = normalize(filters.keyword);
+    if (!q) return [];
+
+    const e = MOCK.entities;
+
+    // filter theo tab + filter theo dropdown đang chọn (khu vực / loại)
+    const props = Object.values(e.properties || {}).filter((p) => {
+      if (!matchPropertyToTab(p, activeTab)) return false;
+      if (filters.locationId !== "all" && p.locationId !== filters.locationId)
+        return false;
+      if (filters.typeId !== "all" && p.typeId !== filters.typeId) return false;
+      return true;
+    });
+
+    const list = props
+      .map((p) => {
+        const locationName = e.locations?.[p.locationId]?.name || "";
+        const typeName = e.propertyTypes?.[p.typeId]?.name || "";
+
+        const tags = (searchIndex.tagsByProp[p.id] || []).filter(Boolean);
+        const amenities = (searchIndex.amenitiesByProp[p.id] || []).filter(
+          Boolean
+        );
+        const features = (searchIndex.featuresByProp[p.id] || []).filter(
+          Boolean
+        );
+
+        const blob = [
+          p.title,
+          p.address,
+          locationName,
+          typeName,
+          p.displayPrice,
+          ...tags,
+          ...amenities,
+          ...features,
+        ]
+          .filter(Boolean)
+          .join(" | ");
+
+        const n = normalize(blob);
+        if (!n.includes(q)) return null;
+
+        const titleN = normalize(p.title);
+        const score =
+          (titleN.startsWith(q) ? 60 : 0) +
+          (titleN.includes(q) ? 25 : 0) +
+          (normalize(p.address).includes(q) ? 10 : 0);
+
+        return {
+          id: p.id,
+          slug: p.slug, // ✅ dùng slug để đi detail
+          title: p.title,
+          address: p.address,
+          coverUrl: p.coverUrl,
+          displayPrice: p.displayPrice,
+          locationName,
+          typeName,
+          score,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    return list;
+  }, [
+    filters.keyword,
+    filters.locationId,
+    filters.typeId,
+    activeTab,
+    searchIndex,
+  ]);
+
+  // CLICK suggestion => đi detail ngay (đúng router của bạn)
+  const pickSuggestion = (sug) => {
+    setFilters((prev) => ({ ...prev, keyword: sug.title }));
+    setShowSuggest(false);
+    setHighlightIndex(-1);
+
+    // ✅ Router của bạn: /properties/:slug
+    navigate(`/properties/${sug.slug}`);
+  };
+
+  /* --- UI COMPONENTS --- */
   const CustomSelect = ({
     icon: Icon,
     label,
@@ -163,6 +309,7 @@ export default function SearchSection() {
             <span className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-amber-400 transition-colors">
               {label}
             </span>
+
             <div className="relative">
               <select
                 value={value === 0 ? "all" : value}
@@ -180,6 +327,7 @@ export default function SearchSection() {
                   );
                 })}
               </select>
+
               <div className="text-white text-sm md:text-[15px] font-medium truncate pr-4 leading-tight">
                 {(() => {
                   if (value === "all" || value === 0) return defaultLabel;
@@ -197,6 +345,7 @@ export default function SearchSection() {
               </div>
             </div>
           </div>
+
           <ChevronDown
             size={14}
             className="text-slate-500 group-focus-within:text-amber-400 transition-colors"
@@ -208,9 +357,8 @@ export default function SearchSection() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden font-sans text-slate-200">
-      {/* 1. BACKGROUND LAYER */}
+      {/* BACKGROUND */}
       <div className="absolute inset-0 w-full h-full">
-        {/* Ảnh nền chất lượng cao */}
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-[30s] ease-linear hover:scale-105"
           style={{
@@ -218,30 +366,27 @@ export default function SearchSection() {
               "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2560&q=80')",
           }}
         />
-        {/* Overlay tối để nổi bật text */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
-        {/* Noise texture tạo chất liệu điện ảnh */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
           }}
-        ></div>
+        />
       </div>
 
-      {/* 2. MAIN CONTENT CONTAINER */}
+      {/* MAIN */}
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
-        {/* HEADINGS */}
+        {/* HEAD */}
         <div
           className={`text-center mb-10 transition-all duration-1000 transform ${
             isLoaded ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
           }`}
         >
-
-          <h1 className="font-extralight text-4xl md:text-6xl lg:text-7xl font-extralight text-white leading-tight mb-4 drop-shadow-2xl">
-            Không gian sống <br className="hidden md:block" />
-            <span className="italic text-amber-400 font-extralight">
-              Đẳng cấp thượng lưu
+          <h1 className="font-sangtrong uppercase text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 drop-shadow-2xl">
+            KHÔNG GIAN SỐNG <br className="hidden md:block" />
+            <span className="text-amber-400 font-sangtrong text-5xl">
+              ĐẲNG CẤP THƯỢNG lưu
             </span>
           </h1>
 
@@ -252,14 +397,14 @@ export default function SearchSection() {
           </p>
         </div>
 
-        {/* 3. GLASS FORM WRAPPER */}
+        {/* FORM WRAPPER */}
         <div
           className={`w-full max-w-6xl transition-all duration-1000 delay-200 transform ${
             isLoaded ? "translate-y-0 opacity-97" : "translate-y-12 opacity-0"
           }`}
         >
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[30px] shadow-2xl overflow-hidden">
-            {/* TABS SELECTOR */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[30px] shadow-2xl">
+            {/* TABS */}
             <div className="flex flex-col md:flex-row border-b border-white/5">
               {[
                 { id: "PROJECT", label: "Dự Án", icon: Building },
@@ -278,9 +423,12 @@ export default function SearchSection() {
                         areaRangeIndex: 0,
                         rentalPeriod: "all",
                         typeId: "all",
+                        keyword: "",
                       }));
+                      setShowSuggest(false);
+                      setHighlightIndex(-1);
                     }}
-                    className={`relative flex-1 py-5 flex items-center justify-center gap-3 transition-all duration-300 group
+                    className={`relative flex-1 py-5 flex items-center justify-center gap-3 transition-all duration-300
                       ${
                         isActive
                           ? "bg-white/10 text-white"
@@ -307,8 +455,8 @@ export default function SearchSection() {
             {/* SEARCH INPUTS */}
             <form onSubmit={handleSearch} className="p-6 md:p-8 lg:p-10">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
-                {/* Keyword Search */}
-                <div className="lg:col-span-3">
+                {/* Keyword + Suggest */}
+                <div className="lg:col-span-3 relative" ref={suggestWrapRef}>
                   <div className="relative w-full h-[72px] rounded-xl border border-white/10 bg-black/20 backdrop-blur-md flex flex-col justify-center px-5 transition-all duration-300 hover:bg-black/40 hover:border-amber-400/30 group focus-within:bg-black/50 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/50">
                     <div className="flex items-center gap-3">
                       <Search
@@ -319,12 +467,49 @@ export default function SearchSection() {
                         <label className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-amber-400 transition-colors">
                           Từ khóa
                         </label>
+
                         <input
                           type="text"
                           value={filters.keyword}
-                          onChange={(e) =>
-                            setFilters({ ...filters, keyword: e.target.value })
-                          }
+                          onChange={(e) => {
+                            setFilters({ ...filters, keyword: e.target.value });
+                            setShowSuggest(true);
+                            setHighlightIndex(-1);
+                          }}
+                          onFocus={() => setShowSuggest(true)}
+                          onKeyDown={(e) => {
+                            if (
+                              !showSuggest ||
+                              propertySuggestions.length === 0
+                            )
+                              return;
+
+                            if (e.key === "ArrowDown") {
+                              e.preventDefault();
+                              setHighlightIndex((prev) =>
+                                Math.min(
+                                  prev + 1,
+                                  propertySuggestions.length - 1
+                                )
+                              );
+                            }
+                            if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              setHighlightIndex((prev) =>
+                                Math.max(prev - 1, 0)
+                              );
+                            }
+                            if (e.key === "Enter" && highlightIndex >= 0) {
+                              e.preventDefault();
+                              pickSuggestion(
+                                propertySuggestions[highlightIndex]
+                              );
+                            }
+                            if (e.key === "Escape") {
+                              setShowSuggest(false);
+                              setHighlightIndex(-1);
+                            }
+                          }}
                           placeholder={
                             activeTab === "PROJECT"
                               ? "Tên dự án..."
@@ -334,6 +519,59 @@ export default function SearchSection() {
                         />
                       </div>
                     </div>
+
+                    {/* Dropdown Suggestions */}
+                    {showSuggest && propertySuggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 top-[78px] z-50">
+                        <div className="rounded-2xl border border-white/10 bg-black/85 backdrop-blur-xl shadow-2xl overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
+                          {propertySuggestions.map((sug, idx) => (
+                            <button
+                              key={sug.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => pickSuggestion(sug)}
+                              className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${
+                                idx === highlightIndex
+                                  ? "bg-white/10"
+                                  : "hover:bg-white/5"
+                              }`}
+                            >
+                              <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10 bg-white/5 flex-shrink-0">
+                                {sug.coverUrl ? (
+                                  <img
+                                    src={sug.coverUrl}
+                                    alt={sug.title}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full" />
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-semibold text-white truncate">
+                                  {sug.title}
+                                </div>
+                                <div className="text-[11px] text-slate-300 truncate flex items-center gap-1">
+                                  <MapPin
+                                    size={12}
+                                    className="text-slate-400"
+                                  />
+                                  <span className="truncate">
+                                    {sug.address || sug.locationName}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-[12px] font-bold text-amber-400 whitespace-nowrap">
+                                {sug.displayPrice || ""}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -415,7 +653,11 @@ export default function SearchSection() {
               <div className="mt-8 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
                 <button
                   type="button"
-                  onClick={handleReset}
+                  onClick={() => {
+                    handleReset();
+                    setShowSuggest(false);
+                    setHighlightIndex(-1);
+                  }}
                   className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider hover:text-white transition-colors group"
                 >
                   <RotateCcw

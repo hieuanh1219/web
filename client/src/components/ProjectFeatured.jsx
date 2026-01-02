@@ -47,12 +47,12 @@ export default function ProjectFeatured() {
           className="max-w-6xl mx-auto"
         >
           {/* Badge */}
-          <span className="mb-6 inline-block rounded-full border border-white/30 bg-white/10 px-6 py-2 text-sm font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md">
+          <span className="mb-6  font-sangtrong inline-block rounded-full border border-white/30 bg-white/10 px-6 py-2 text-sm font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md">
             Dự án tâm điểm
           </span>
 
           {/* Title - Chữ cực lớn */}
-          <h2 className="mb-6 text-5xl font-extralight leading-tight text-white md:text-7xl lg:text-8xl drop-shadow-2xl">
+          <h2 className="mb-6 text-5xl font-sangtrong uppercase leading-tight text-white md:text-7xl  lg:leading-normal lg:text-8xl drop-shadow-2xl">
             {featuredProject.title}
           </h2>
 
