@@ -3,7 +3,6 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { MOCK } from "../hook/data";
 import TINH_THANH from "../hook/datatinhthanh";
-
 import {
   Search,
   MapPin,
@@ -17,9 +16,11 @@ import {
   ArrowRight,
   ScanLine,
   CalendarDays,
+  Filter,
+  X,
 } from "lucide-react";
 
-/* --- 1. CONFIG DATA (GIỮ NGUYÊN) --- */
+/* --- 1. CONFIG DATA --- */
 const PRICE_RANGES = {
   SALE: [
     { label: "Tất cả mức giá", min: 0, max: Infinity },
@@ -58,14 +59,14 @@ const RENTAL_PERIODS = [
 ];
 
 /* =========================
-   HELPERS: AUTOCOMPLETE
+   HELPERS
 ========================= */
 const normalize = (s = "") =>
   s
     .toString()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // bỏ dấu tiếng Việt
+    .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
 const isProjectByFE = (p) => !p?.landArea || parseFloat(p.landArea) === 0;
@@ -81,10 +82,10 @@ const matchPropertyToTab = (p, tab) => {
 export default function SearchSection() {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => setIsLoaded(true), []);
 
-  // 2. STATE QUẢN LÝ
   const [activeTab, setActiveTab] = useState("PROJECT");
   const [filters, setFilters] = useState({
     keyword: "",
@@ -95,7 +96,7 @@ export default function SearchSection() {
     rentalPeriod: "all",
   });
 
-  // 3. LOGIC LỌC TYPE
+  // LOGIC LỌC TYPE
   const visiblePropertyTypes = useMemo(() => {
     const allTypes = Object.values(MOCK.entities.propertyTypes);
     if (activeTab === "PROJECT") {
@@ -122,9 +123,9 @@ export default function SearchSection() {
     return allTypes;
   }, [activeTab]);
 
-  // 4. HANDLERS SEARCH LIST (giữ nguyên)
+  // HANDLERS
   const handleSearch = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     const params = new URLSearchParams();
     params.set("tab", activeTab);
     if (filters.keyword) params.set("keyword", filters.keyword);
@@ -133,7 +134,6 @@ export default function SearchSection() {
     if (filters.typeId !== "all") params.set("typeId", filters.typeId);
     if (filters.priceRangeIndex > 0)
       params.set("price", filters.priceRangeIndex);
-
     if (
       (activeTab === "SALE" || activeTab === "PROJECT") &&
       filters.areaRangeIndex > 0
@@ -157,14 +157,11 @@ export default function SearchSection() {
     });
   };
 
-  /* =========================
-     AUTOCOMPLETE: FULL
-  ========================= */
+  /* --- LOGIC AUTOCOMPLETE --- */
   const [showSuggest, setShowSuggest] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const suggestWrapRef = useRef(null);
 
-  // click outside => đóng gợi ý
   useEffect(() => {
     const onDown = (e) => {
       if (!suggestWrapRef.current) return;
@@ -177,20 +174,16 @@ export default function SearchSection() {
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
-  // build indexes: tags/amenities/features theo propertyId để search thêm keyword
   const searchIndex = useMemo(() => {
     const e = MOCK.entities;
-
     const tagsByProp = (e.propertyTags || []).reduce((acc, x) => {
       (acc[x.propertyId] ||= []).push(e.tags?.[x.tagId]?.name);
       return acc;
     }, {});
-
     const amenitiesByProp = (e.propertyAmenities || []).reduce((acc, x) => {
       (acc[x.propertyId] ||= []).push(e.amenities?.[x.amenityId]?.name);
       return acc;
     }, {});
-
     const featuresByProp = Object.values(e.propertyFeatures || {}).reduce(
       (acc, x) => {
         (acc[x.propertyId] ||= []).push(x.value);
@@ -198,18 +191,13 @@ export default function SearchSection() {
       },
       {}
     );
-
     return { tagsByProp, amenitiesByProp, featuresByProp };
   }, []);
 
-  // suggestions dạng card (property)
   const propertySuggestions = useMemo(() => {
     const q = normalize(filters.keyword);
     if (!q) return [];
-
     const e = MOCK.entities;
-
-    // filter theo tab + filter theo dropdown đang chọn (khu vực / loại)
     const props = Object.values(e.properties || {}).filter((p) => {
       if (!matchPropertyToTab(p, activeTab)) return false;
       if (filters.locationId !== "all" && p.locationId !== filters.locationId)
@@ -222,7 +210,6 @@ export default function SearchSection() {
       .map((p) => {
         const locationName = e.locations?.[p.locationId]?.name || "";
         const typeName = e.propertyTypes?.[p.typeId]?.name || "";
-
         const tags = (searchIndex.tagsByProp[p.id] || []).filter(Boolean);
         const amenities = (searchIndex.amenitiesByProp[p.id] || []).filter(
           Boolean
@@ -230,7 +217,6 @@ export default function SearchSection() {
         const features = (searchIndex.featuresByProp[p.id] || []).filter(
           Boolean
         );
-
         const blob = [
           p.title,
           p.address,
@@ -243,19 +229,16 @@ export default function SearchSection() {
         ]
           .filter(Boolean)
           .join(" | ");
-
         const n = normalize(blob);
         if (!n.includes(q)) return null;
-
         const titleN = normalize(p.title);
         const score =
           (titleN.startsWith(q) ? 60 : 0) +
           (titleN.includes(q) ? 25 : 0) +
           (normalize(p.address).includes(q) ? 10 : 0);
-
         return {
           id: p.id,
-          slug: p.slug, // ✅ dùng slug để đi detail
+          slug: p.slug,
           title: p.title,
           address: p.address,
           coverUrl: p.coverUrl,
@@ -268,7 +251,6 @@ export default function SearchSection() {
       .filter(Boolean)
       .sort((a, b) => b.score - a.score)
       .slice(0, 8);
-
     return list;
   }, [
     filters.keyword,
@@ -278,13 +260,10 @@ export default function SearchSection() {
     searchIndex,
   ]);
 
-  // CLICK suggestion => đi detail ngay (đúng router của bạn)
   const pickSuggestion = (sug) => {
     setFilters((prev) => ({ ...prev, keyword: sug.title }));
     setShowSuggest(false);
     setHighlightIndex(-1);
-
-    // ✅ Router của bạn: /properties/:slug
     navigate(`/properties/${sug.slug}`);
   };
 
@@ -298,18 +277,17 @@ export default function SearchSection() {
     defaultLabel = "Tất cả",
   }) => (
     <div className="relative w-full group">
-      <div className="flex flex-col h-[72px] justify-center px-4 md:px-5 rounded-xl border border-white/10 bg-black/20 backdrop-blur-md transition-all duration-300 hover:bg-black/40 hover:border-amber-400/30 group-focus-within:bg-black/50 group-focus-within:border-amber-400 group-focus-within:ring-1 group-focus-within:ring-amber-400/50">
+      <div className="flex flex-col h-[60px] md:h-[72px] justify-center px-4 md:px-5 rounded-xl border border-white/10 bg-black/20 backdrop-blur-md transition-all duration-300 hover:bg-black/40 hover:border-amber-400/30 group-focus-within:bg-black/50 group-focus-within:border-amber-400 group-focus-within:ring-1 group-focus-within:ring-amber-400/50">
         <div className="flex items-center gap-3">
           <Icon
             size={18}
-            className="text-slate-400 group-focus-within:text-amber-400 transition-colors duration-300"
+            className="text-slate-400 group-focus-within:text-amber-400 transition-colors duration-300 flex-shrink-0"
             strokeWidth={1.5}
           />
           <div className="flex-1 overflow-hidden">
             <span className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-amber-400 transition-colors">
               {label}
             </span>
-
             <div className="relative">
               <select
                 value={value === 0 ? "all" : value}
@@ -327,7 +305,6 @@ export default function SearchSection() {
                   );
                 })}
               </select>
-
               <div className="text-white text-sm md:text-[15px] font-medium truncate pr-4 leading-tight">
                 {(() => {
                   if (value === "all" || value === 0) return defaultLabel;
@@ -345,10 +322,9 @@ export default function SearchSection() {
               </div>
             </div>
           </div>
-
           <ChevronDown
             size={14}
-            className="text-slate-500 group-focus-within:text-amber-400 transition-colors"
+            className="text-slate-500 group-focus-within:text-amber-400 transition-colors flex-shrink-0"
           />
         </div>
       </div>
@@ -356,9 +332,9 @@ export default function SearchSection() {
   );
 
   return (
-    <div className="relative w-full h-screen overflow-hidden font-sans text-slate-200">
+    <div className="relative w-full min-h-screen overflow-hidden font-sans text-slate-200">
       {/* BACKGROUND */}
-      <div className="absolute inset-0 w-full h-full">
+      <div className="absolute inset-0 w-full h-full fixed">
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-[30s] ease-linear hover:scale-105"
           style={{
@@ -367,49 +343,43 @@ export default function SearchSection() {
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          }}
-        />
       </div>
 
-      {/* MAIN */}
-      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
-        {/* HEAD */}
+      <div className="relative z-10 w-full min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-10 md:py-0">
+        {/* TITLE SECTION */}
         <div
-          className={`text-center mb-10 transition-all duration-1000 transform ${
+          className={`text-center mb-6 md:mb-10 transition-all duration-1000 transform ${
             isLoaded ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
           }`}
         >
-          <h1 className="font-sangtrong uppercase text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 drop-shadow-2xl">
-            KHÔNG GIAN SỐNG <br className="hidden md:block" />
-            <span className="text-amber-400 font-sangtrong text-5xl">
-              ĐẲNG CẤP THƯỢNG lưu
+          <h1 className="font-sangtrong uppercase text-3xl md:text-6xl lg:text-7xl text-white leading-tight mb-3 drop-shadow-2xl">
+            {/* KHÔNG GIAN SỐNG <br className="hidden md:block" /> */}
+            Không gian sống <br />
+            <span className="text-amber-400 font-sangtrong text-4xl md:text-5xl">
+              ĐẲNG CẤP THƯỢNG LƯU
             </span>
           </h1>
-
-          <p className="text-slate-300 font-light text-sm md:text-lg max-w-2xl mx-auto tracking-wide">
+          <p className="text-slate-300 font-sans text-xs md:text-lg max-w-2xl mx-auto tracking-wide px-2">
             Tìm kiếm ngôi nhà mơ ước trong bộ sưu tập{" "}
             <span className="text-white font-medium">độc bản</span> của chúng
             tôi.
           </p>
         </div>
 
-        {/* FORM WRAPPER */}
+        {/* FORM CONTAINER */}
         <div
           className={`w-full max-w-6xl transition-all duration-1000 delay-200 transform ${
             isLoaded ? "translate-y-0 opacity-97" : "translate-y-12 opacity-0"
           }`}
         >
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[30px] shadow-2xl">
-            {/* TABS */}
-            <div className="flex flex-col md:flex-row border-b border-white/5">
+          {/* LƯU Ý: Xóa overflow-hidden để dropdown không bị cắt */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[20px] md:rounded-[30px] shadow-2xl relative">
+            {/* TABS - Bo góc trên thủ công */}
+            <div className="flex flex-row border-b border-white/5 overflow-x-auto scrollbar-hide rounded-t-[20px] md:rounded-t-[30px]">
               {[
                 { id: "PROJECT", label: "Dự Án", icon: Building },
                 { id: "SALE", label: "Nhà", icon: Home },
-                { id: "RENT", label: "Cho Thuê", icon: Key },
+                { id: "RENT", label: "Thuê", icon: Key },
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -426,48 +396,51 @@ export default function SearchSection() {
                         keyword: "",
                       }));
                       setShowSuggest(false);
-                      setHighlightIndex(-1);
+                      setIsMobileFilterOpen(false);
                     }}
-                    className={`relative flex-1 py-5 flex items-center justify-center gap-3 transition-all duration-300
+                    className={`relative flex-1 py-4 md:py-5 flex items-center justify-center gap-2 md:gap-3 transition-all duration-300 min-w-[90px]
                       ${
                         isActive
                           ? "bg-white/10 text-white"
                           : "hover:bg-white/5 text-slate-400 hover:text-white"
-                      }
-                    `}
+                      }`}
                   >
                     <tab.icon
-                      size={18}
+                      size={16}
+                      className={`md:w-[18px] md:h-[18px] ${
+                        isActive ? "text-amber-400" : ""
+                      }`}
                       strokeWidth={1.5}
-                      className={isActive ? "text-amber-400" : ""}
                     />
-                    <span className="text-sm font-bold tracking-widest uppercase">
+                    <span className="text-[11px] md:text-sm font-bold tracking-widest uppercase">
                       {tab.label}
                     </span>
                     {isActive && (
-                      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
+                      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
                     )}
                   </button>
                 );
               })}
             </div>
 
-            {/* SEARCH INPUTS */}
-            <form onSubmit={handleSearch} className="p-6 md:p-8 lg:p-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
-                {/* Keyword + Suggest */}
-                <div className="lg:col-span-3 relative" ref={suggestWrapRef}>
-                  <div className="relative w-full h-[72px] rounded-xl border border-white/10 bg-black/20 backdrop-blur-md flex flex-col justify-center px-5 transition-all duration-300 hover:bg-black/40 hover:border-amber-400/30 group focus-within:bg-black/50 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/50">
+            {/* FORM INPUTS */}
+            <form onSubmit={handleSearch} className="p-4 md:p-8 lg:p-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 relative">
+                {/* 1. KEYWORD INPUT (z-50 để luôn nổi lên trên) */}
+                <div
+                  className="lg:col-span-3 relative z-50"
+                  ref={suggestWrapRef}
+                >
+                  <div className="relative w-full h-[60px] md:h-[72px] rounded-xl border border-white/10 bg-black/20 backdrop-blur-md flex flex-col justify-center px-4 md:px-5 transition-all duration-300 focus-within:bg-black/50 focus-within:border-amber-400">
                     <div className="flex items-center gap-3">
                       <Search
                         size={18}
-                        className="text-slate-400 group-focus-within:text-amber-400 transition-colors"
+                        className="text-slate-400 flex-shrink-0"
                       />
                       <div className="flex-1">
-                        <label className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5 group-focus-within:text-amber-400 transition-colors">
+                        <label className="block text-[10px] md:text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">
                           Từ khóa
                         </label>
-
                         <input
                           type="text"
                           value={filters.keyword}
@@ -483,7 +456,6 @@ export default function SearchSection() {
                               propertySuggestions.length === 0
                             )
                               return;
-
                             if (e.key === "ArrowDown") {
                               e.preventDefault();
                               setHighlightIndex((prev) =>
@@ -513,59 +485,60 @@ export default function SearchSection() {
                           placeholder={
                             activeTab === "PROJECT"
                               ? "Tên dự án..."
-                              : "Tìm địa chỉ, đường..."
+                              : "Địa chỉ, đường..."
                           }
                           className="w-full bg-transparent text-white text-sm md:text-[15px] font-medium placeholder-slate-600 focus:outline-none"
                         />
                       </div>
+                      {filters.keyword && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFilters({ ...filters, keyword: "" })
+                          }
+                          className="p-1 text-slate-500 hover:text-white"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
 
-                    {/* Dropdown Suggestions */}
+                    {/* SUGGESTION DROPDOWN (z-100) */}
                     {showSuggest && propertySuggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 top-[78px] z-50">
-                        <div className="rounded-2xl border border-white/10 bg-black/85 backdrop-blur-xl shadow-2xl overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <div className="absolute left-0 right-0 top-[65px] md:top-[78px] z-[100]">
+                        <div className="rounded-2xl border border-white/10 bg-black/95 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar ring-1 ring-white/10">
                           {propertySuggestions.map((sug, idx) => (
                             <button
                               key={sug.id}
                               type="button"
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => pickSuggestion(sug)}
-                              className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-white/5 last:border-0 ${
                                 idx === highlightIndex
-                                  ? "bg-white/10"
-                                  : "hover:bg-white/5"
+                                  ? "bg-white/15"
+                                  : "hover:bg-white/10"
                               }`}
                             >
-                              <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10 bg-white/5 flex-shrink-0">
-                                {sug.coverUrl ? (
+                              <div className="w-10 h-10 rounded bg-white/10 flex-shrink-0 overflow-hidden border border-white/10">
+                                {sug.coverUrl && (
                                   <img
                                     src={sug.coverUrl}
-                                    alt={sug.title}
                                     className="w-full h-full object-cover"
-                                    loading="lazy"
+                                    alt=""
                                   />
-                                ) : (
-                                  <div className="w-full h-full" />
                                 )}
                               </div>
-
                               <div className="flex-1 min-w-0">
-                                <div className="text-[13px] font-semibold text-white truncate">
+                                <div className="text-white text-sm font-semibold truncate">
                                   {sug.title}
                                 </div>
-                                <div className="text-[11px] text-slate-300 truncate flex items-center gap-1">
-                                  <MapPin
-                                    size={12}
-                                    className="text-slate-400"
-                                  />
-                                  <span className="truncate">
-                                    {sug.address || sug.locationName}
-                                  </span>
+                                <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                                  <MapPin size={10} />{" "}
+                                  {sug.address || sug.locationName}
                                 </div>
                               </div>
-
-                              <div className="text-[12px] font-bold text-amber-400 whitespace-nowrap">
-                                {sug.displayPrice || ""}
+                              <div className="text-[11px] font-bold text-amber-400 whitespace-nowrap">
+                                {sug.displayPrice}
                               </div>
                             </button>
                           ))}
@@ -575,104 +548,126 @@ export default function SearchSection() {
                   </div>
                 </div>
 
-                {/* Dropdowns */}
-                <div className="lg:col-span-3">
-                  <CustomSelect
-                    icon={MapPin}
-                    label="Khu vực"
-                    value={filters.locationId}
-                    onChange={(e) =>
-                      setFilters({ ...filters, locationId: e.target.value })
-                    }
-                    options={TINH_THANH}
-                    defaultLabel="Toàn quốc"
-                  />
+                {/* MOBILE TOGGLE (Chỉ hiện trên Mobile, z-40 để nằm dưới keyword nhưng trên các ô khác) */}
+                <div className="block lg:hidden relative z-40">
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+                    className={`w-full h-[50px] flex items-center justify-center gap-2 rounded-xl text-sm font-bold uppercase tracking-wide border transition-all ${
+                      isMobileFilterOpen
+                        ? "bg-amber-400/20 border-amber-400 text-amber-400"
+                        : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <Filter size={16} />
+                    {isMobileFilterOpen ? "Thu gọn bộ lọc" : "Bộ lọc nâng cao"}
+                  </button>
                 </div>
 
-                <div className="lg:col-span-2">
-                  <CustomSelect
-                    icon={Building2}
-                    label="Loại hình"
-                    value={filters.typeId}
-                    onChange={(e) =>
-                      setFilters({ ...filters, typeId: e.target.value })
-                    }
-                    options={visiblePropertyTypes}
-                    defaultLabel="Tất cả"
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  <CustomSelect
-                    icon={Wallet}
-                    label="Mức giá"
-                    value={filters.priceRangeIndex}
-                    onChange={(e) =>
-                      setFilters({
-                        ...filters,
-                        priceRangeIndex:
-                          e.target.value === "all" ? 0 : Number(e.target.value),
-                      })
-                    }
-                    options={PRICE_RANGES[activeTab]}
-                  />
-                </div>
-
-                <div className="lg:col-span-2">
-                  {activeTab === "RENT" ? (
+                {/* CÁC BỘ LỌC KHÁC (Ẩn trên mobile trừ khi mở) */}
+                <div
+                  className={`lg:contents ${
+                    isMobileFilterOpen ? "contents" : "hidden"
+                  } relative z-10`}
+                >
+                  <div className="lg:col-span-3">
                     <CustomSelect
-                      icon={CalendarDays}
-                      label="Thời hạn"
-                      value={filters.rentalPeriod}
+                      icon={MapPin}
+                      label="Khu vực"
+                      value={filters.locationId}
                       onChange={(e) =>
-                        setFilters({ ...filters, rentalPeriod: e.target.value })
+                        setFilters({ ...filters, locationId: e.target.value })
                       }
-                      options={RENTAL_PERIODS}
+                      options={TINH_THANH}
+                      defaultLabel="Toàn quốc"
                     />
-                  ) : (
+                  </div>
+                  <div className="lg:col-span-2">
                     <CustomSelect
-                      icon={ScanLine}
-                      label="Diện tích"
-                      value={filters.areaRangeIndex}
+                      icon={Building2}
+                      label="Loại hình"
+                      value={filters.typeId}
+                      onChange={(e) =>
+                        setFilters({ ...filters, typeId: e.target.value })
+                      }
+                      options={visiblePropertyTypes}
+                      defaultLabel="Tất cả"
+                    />
+                  </div>
+                  <div className="lg:col-span-2">
+                    <CustomSelect
+                      icon={Wallet}
+                      label="Mức giá"
+                      value={filters.priceRangeIndex}
                       onChange={(e) =>
                         setFilters({
                           ...filters,
-                          areaRangeIndex:
+                          priceRangeIndex:
                             e.target.value === "all"
                               ? 0
                               : Number(e.target.value),
                         })
                       }
-                      options={AREA_RANGES}
+                      options={PRICE_RANGES[activeTab]}
                     />
-                  )}
+                  </div>
+                  <div className="lg:col-span-2">
+                    {activeTab === "RENT" ? (
+                      <CustomSelect
+                        icon={CalendarDays}
+                        label="Thời hạn"
+                        value={filters.rentalPeriod}
+                        onChange={(e) =>
+                          setFilters({
+                            ...filters,
+                            rentalPeriod: e.target.value,
+                          })
+                        }
+                        options={RENTAL_PERIODS}
+                      />
+                    ) : (
+                      <CustomSelect
+                        icon={ScanLine}
+                        label="Diện tích"
+                        value={filters.areaRangeIndex}
+                        onChange={(e) =>
+                          setFilters({
+                            ...filters,
+                            areaRangeIndex:
+                              e.target.value === "all"
+                                ? 0
+                                : Number(e.target.value),
+                          })
+                        }
+                        options={AREA_RANGES}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* ACTION BUTTONS */}
-              <div className="mt-8 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+              {/* ACTION BUTTONS (z-0 để không che gì cả) */}
+              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-white/5 flex flex-col-reverse md:flex-row items-center justify-between gap-4 relative z-0">
                 <button
                   type="button"
                   onClick={() => {
                     handleReset();
                     setShowSuggest(false);
-                    setHighlightIndex(-1);
                   }}
-                  className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider hover:text-white transition-colors group"
+                  className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider hover:text-white transition-colors group py-2"
                 >
                   <RotateCcw
                     size={14}
                     className="group-hover:-rotate-180 transition-transform duration-500"
-                  />
+                  />{" "}
                   Xóa bộ lọc
                 </button>
 
                 <button
                   type="submit"
-                  className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-amber-400 to-yellow-600 hover:from-amber-300 hover:to-yellow-500 text-black font-bold text-sm uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transform hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
+                  className="w-full md:w-auto px-12 py-3.5 md:py-4 bg-gradient-to-r from-amber-400 to-yellow-600 hover:from-amber-300 hover:to-yellow-500 text-black font-bold text-sm uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transform hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
                 >
-                  <Search size={18} strokeWidth={2.5} />
-                  <span>Tìm Kiếm</span>
+                  <Search size={18} strokeWidth={2.5} /> <span>Tìm Kiếm</span>{" "}
                   <ArrowRight size={18} strokeWidth={2.5} />
                 </button>
               </div>

@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-// --- ICONS SVG CHUẨN ---
+// --- ICONS SVG (Giữ nguyên không đổi) ---
 const Icons = {
   Phone: () => (
     <svg
@@ -85,8 +85,6 @@ const Icons = {
       />
     </svg>
   ),
-
-  // Social Brand Icons (Fill)
   Facebook: () => (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
       <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 2.848-6.304 6.162-6.304 1.882 0 3.659.26 3.886.333v4.03h-2.199c-1.558 0-1.993 1.056-1.993 2.503v1.018h3.93l-.53 3.667h-3.4v7.98H9.1z" />
@@ -108,55 +106,62 @@ export default function Footer() {
   return (
     <footer
       id="contact"
-      className="bg-[#0E2038] text-white pt-20 pb-10 overflow-hidden relative font-sans"
+      className="bg-[#0E2038] text-white pt-12 pb-8 lg:pt-20 lg:pb-10 overflow-hidden relative font-sans"
     >
-      {/* Decorative Background Elements */}
+      {/* --- DECORATIVE ELEMENTS (Ẩn bớt trên mobile để đỡ rối) --- */}
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-      <div className="absolute -top-[200px] -right-[200px] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        {/* --- TOP SECTION: CTA & NEWSLETTER --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16 border-b border-white/5 pb-16">
-          <div className="lg:col-span-7">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+      {/* Chỉ hiện hiệu ứng Blur lớn trên màn hình Desktop (hidden md:block) */}
+      <div className="hidden md:block absolute -top-[200px] -right-[200px] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+      {/* Mobile: Một hiệu ứng nhỏ hơn, tinh tế hơn */}
+      <div className="block md:hidden absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-[60px] pointer-events-none"></div>
+
+      <div className="max-w-7xl mx-auto px-5 lg:px-6 relative z-10">
+        {/* --- SECTION 1: CTA & NEWSLETTER --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-12 border-b border-white/5 pb-10 lg:pb-16">
+          <div className="lg:col-span-7 text-center lg:text-left">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
               Bạn đang tìm kiếm{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500">
+              <span className="block md:inline mt-1 md:mt-0 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500">
                 ngôi nhà mơ ước?
               </span>
             </h2>
-            <p className="text-slate-300 text-lg max-w-xl leading-relaxed">
-              Đăng ký để nhận thông tin về các dự án mới nhất, bảng giá độc
-              quyền và ưu đãi đặc biệt từ RealEstate.
+            <p className="text-slate-300 text-sm md:text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Đăng ký để nhận thông tin về dự án mới nhất và bảng giá độc quyền
+              từ RealEstate.
             </p>
           </div>
+
           <div className="lg:col-span-5 flex flex-col justify-center">
-            <div className="relative group">
+            <div className="relative group w-full max-w-md mx-auto lg:max-w-none">
               <input
                 type="email"
-                placeholder="Nhập địa chỉ email của bạn..."
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-6 pr-36 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:bg-white/10 transition-all text-white placeholder-slate-400"
+                placeholder="Nhập email của bạn..."
+                // Mobile: Text size 16px để tránh lỗi zoom trên iOS
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-5 pr-32 md:pr-36 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:bg-white/10 transition-all text-white placeholder-slate-400 text-base"
               />
-              <button className="absolute right-2 top-2 bottom-2 bg-white text-[#0E2038] hover:bg-yellow-400 font-bold px-6 rounded-xl transition-all shadow-lg flex items-center gap-2">
-                <span>Đăng ký</span>
+              <button className="absolute right-1.5 top-1.5 bottom-1.5 bg-white text-[#0E2038] hover:bg-yellow-400 active:scale-95 font-bold px-4 md:px-6 rounded-xl transition-all shadow-lg flex items-center gap-2">
+                <span className="hidden sm:inline">Đăng ký</span>
                 <Icons.Send />
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-3 ml-2">
-              *Chúng tôi cam kết bảo mật thông tin cá nhân của bạn.
+            <p className="text-[10px] md:text-xs text-slate-500 mt-3 text-center lg:text-left lg:ml-2">
+              *Cam kết bảo mật thông tin 100%.
             </p>
           </div>
         </div>
 
-        {/* --- MAIN CONTENT GRID (3 CỘT) --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 mb-16">
-          {/* CỘT 1: THƯƠNG HIỆU & MẠNG XÃ HỘI */}
-          <div className="space-y-6">
-            <Link to="/" className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-blue-500/30">
+        {/* --- SECTION 2: MAIN CONTENT GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-16 mb-8 lg:mb-16">
+          {/* CỘT 1: THƯƠNG HIỆU (Căn giữa trên Mobile để làm điểm nhấn) */}
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-5">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl lg:text-2xl shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
                 R
               </div>
-              <div>
-                <span className="text-2xl font-bold tracking-tight block leading-none">
+              <div className="flex flex-col items-start">
+                <span className="text-xl lg:text-2xl font-bold tracking-tight block leading-none">
                   RealEstate
                 </span>
                 <span className="text-[10px] uppercase tracking-widest text-slate-400">
@@ -164,95 +169,99 @@ export default function Footer() {
                 </span>
               </div>
             </Link>
-            <p className="text-slate-400 leading-relaxed text-sm max-w-sm">
-              Kiến tạo không gian sống đẳng cấp. Chúng tôi cung cấp giải pháp
-              bất động sản toàn diện với sự minh bạch và chuyên nghiệp hàng đầu.
+            <p className="text-slate-400 leading-relaxed text-sm max-w-xs mx-auto lg:mx-0">
+              Kiến tạo không gian sống đẳng cấp. Giải pháp bất động sản toàn
+              diện, minh bạch và chuyên nghiệp.
             </p>
 
-            {/* SOCIAL ICONS */}
-            <div className="pt-4">
-              <p className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-3">
-                Kết nối với chúng tôi
-              </p>
+            {/* Social Icons - Tăng kích thước vùng chạm cho mobile */}
+            <div className="pt-2">
               <div className="flex gap-4">
-                {/* Facebook */}
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] hover:text-white flex items-center justify-center transition-all duration-300 border border-[#1877F2]/20"
-                  title="Facebook"
-                >
-                  <Icons.Facebook />
-                </a>
-
-                {/* YouTube */}
-                <a
-                  href="https://youtube.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#FF0000]/10 hover:bg-[#FF0000] text-[#FF0000] hover:text-white flex items-center justify-center transition-all duration-300 border border-[#FF0000]/20"
-                  title="YouTube"
-                >
-                  <Icons.Youtube />
-                </a>
-
-                {/* Gmail */}
-                <a
-                  href="mailto:contact@realestate.com"
-                  className="w-10 h-10 rounded-full bg-[#EA4335]/10 hover:bg-[#EA4335] text-[#EA4335] hover:text-white flex items-center justify-center transition-all duration-300 border border-[#EA4335]/20"
-                  title="Gmail"
-                >
-                  <Icons.Gmail />
-                </a>
+                {[
+                  {
+                    Icon: Icons.Facebook,
+                    color: "text-[#1877F2]",
+                    bg: "bg-[#1877F2]/10",
+                    border: "border-[#1877F2]/20",
+                  },
+                  {
+                    Icon: Icons.Youtube,
+                    color: "text-[#FF0000]",
+                    bg: "bg-[#FF0000]/10",
+                    border: "border-[#FF0000]/20",
+                  },
+                  {
+                    Icon: Icons.Gmail,
+                    color: "text-[#EA4335]",
+                    bg: "bg-[#EA4335]/10",
+                    border: "border-[#EA4335]/20",
+                  },
+                ].map((social, idx) => (
+                  <a
+                    key={idx}
+                    href="#"
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`w-11 h-11 rounded-full ${
+                      social.bg
+                    } hover:${social.bg.replace("/10", "")} ${
+                      social.color
+                    } hover:text-white flex items-center justify-center transition-all duration-300 border ${
+                      social.border
+                    } active:scale-95`}
+                  >
+                    <social.Icon />
+                  </a>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* CỘT 2: THÔNG TIN LIÊN HỆ */}
-          <div>
-            <h4 className="font-bold text-lg mb-6 flex items-center gap-2 text-white">
+          {/* CỘT 2: LIÊN HỆ (Giữ căn trái cho dễ đọc) */}
+          <div className="px-2 md:px-0">
+            <h4 className="font-bold text-lg mb-5 flex items-center gap-2 text-white justify-start">
               <span className="w-8 h-[2px] bg-yellow-500"></span> Liên hệ
             </h4>
-            <ul className="space-y-6">
+            <ul className="space-y-5">
               <li className="flex items-start gap-4 text-sm text-slate-300 group">
-                <div className="mt-1 text-yellow-400 p-2 bg-yellow-400/10 rounded-lg group-hover:bg-yellow-400 group-hover:text-[#0E2038] transition-colors">
+                <div className="mt-1 flex-shrink-0 text-yellow-400 p-2 bg-yellow-400/10 rounded-lg group-hover:bg-yellow-400 group-hover:text-[#0E2038] transition-colors">
                   <Icons.MapPin />
                 </div>
                 <div>
-                  <span className="block font-bold text-white mb-1">
+                  <span className="block font-bold text-white mb-0.5">
                     Trụ sở chính
                   </span>
-                  <span>Tầng 12, Tòa nhà Bitexco, Q.1, TP. Hồ Chí Minh</span>
+                  <span className="opacity-80">
+                    Tầng 12, Tòa nhà Bitexco, Q.1, TP. Hồ Chí Minh
+                  </span>
                 </div>
               </li>
+
               <li className="flex items-center gap-4 text-sm text-slate-300 group">
-                <div className="text-yellow-400 p-2 bg-yellow-400/10 rounded-lg group-hover:bg-yellow-400 group-hover:text-[#0E2038] transition-colors">
+                <div className="flex-shrink-0 text-yellow-400 p-2 bg-yellow-400/10 rounded-lg group-hover:bg-yellow-400 group-hover:text-[#0E2038] transition-colors">
                   <Icons.Phone />
                 </div>
-                <div>
-                  <span className="block font-bold text-white mb-1">
-                    Hotline tư vấn
-                  </span>
+                <div className="flex flex-col">
+                  <span className="font-bold text-white mb-0.5">Hotline</span>
+                  {/* Số điện thoại to hơn một chút trên mobile để dễ bấm */}
                   <a
                     href="tel:0901234567"
-                    className="hover:text-yellow-400 transition text-lg font-mono"
+                    className="hover:text-yellow-400 transition text-base font-mono font-medium text-white/90"
                   >
                     0901 234 567
                   </a>
                 </div>
               </li>
+
               <li className="flex items-center gap-4 text-sm text-slate-300 group">
-                <div className="text-yellow-400 p-2 bg-yellow-400/10 rounded-lg group-hover:bg-yellow-400 group-hover:text-[#0E2038] transition-colors">
+                <div className="flex-shrink-0 text-yellow-400 p-2 bg-yellow-400/10 rounded-lg group-hover:bg-yellow-400 group-hover:text-[#0E2038] transition-colors">
                   <Icons.Mail />
                 </div>
-                <div>
-                  <span className="block font-bold text-white mb-1">
-                    Email hỗ trợ
-                  </span>
+                <div className="flex flex-col">
+                  <span className="font-bold text-white mb-0.5">Email</span>
                   <a
                     href="mailto:contact@realestate.com"
-                    className="hover:text-yellow-400 transition"
+                    className="hover:text-yellow-400 transition break-all"
                   >
                     contact@realestate.com
                   </a>
@@ -261,50 +270,59 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* CỘT 3: THỐNG KÊ (STATS CARD) */}
-          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-3xl p-8 border border-white/10 backdrop-blur-md shadow-2xl relative overflow-hidden">
-            {/* Hiệu ứng nền nhẹ */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          {/* CỘT 3: THỐNG KÊ (Card style) */}
+          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-3xl p-6 lg:p-8 border border-white/10 backdrop-blur-md shadow-xl relative overflow-hidden md:col-span-2 lg:col-span-1 mx-auto w-full max-w-lg lg:max-w-none">
+            {/* Hiệu ứng nền nhẹ - giữ lại nhưng mờ hơn */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-            <h4 className="font-bold text-white mb-6 text-lg">
-              Dấu ấn phát triển
+            <h4 className="font-bold text-white mb-5 text-lg flex items-center justify-between">
+              <span>Dấu ấn phát triển</span>
+              <span className="block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             </h4>
-            <div className="space-y-5 relative z-10">
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <span className="text-slate-400 text-sm font-medium">
-                  Khách hàng tin chọn
-                </span>
-                <span className="font-bold text-xl text-white">5,000+</span>
+
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="text-slate-400 text-sm">Khách hàng</span>
+                <span className="font-bold text-lg text-white">5,000+</span>
               </div>
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <span className="text-slate-400 text-sm font-medium">
-                  Dự án phân phối
-                </span>
-                <span className="font-bold text-xl text-white">120+</span>
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="text-slate-400 text-sm">Dự án</span>
+                <span className="font-bold text-lg text-white">120+</span>
               </div>
               <div className="flex items-center justify-between pt-1">
-                <span className="text-slate-400 text-sm font-medium">
-                  Tỷ lệ hài lòng
-                </span>
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl">
+                <span className="text-slate-400 text-sm">Hài lòng</span>
+                <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-lg">
                   <span>99%</span>
                   <Icons.Check />
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-white/10 text-center">
-              <p className="text-xs text-slate-500 mb-3">
-                Đối tác chiến lược của các ngân hàng lớn
+            <div className="mt-6 pt-5 border-t border-white/10 text-center">
+              <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-3">
+                Đối tác chiến lược
               </p>
-              <div className="flex justify-center gap-2 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                {/* Giả lập logo bank bằng text placeholder hoặc khối */}
-                <span className="h-6 w-12 bg-white/20 rounded"></span>
-                <span className="h-6 w-12 bg-white/20 rounded"></span>
-                <span className="h-6 w-12 bg-white/20 rounded"></span>
-                <span className="h-6 w-12 bg-white/20 rounded"></span>
+              <div className="flex justify-center gap-3 opacity-40 grayscale">
+                {/* Bank Logos Placeholder - Tinh chỉnh size */}
+                <div className="h-5 w-10 bg-white/30 rounded-sm"></div>
+                <div className="h-5 w-10 bg-white/30 rounded-sm"></div>
+                <div className="h-5 w-10 bg-white/30 rounded-sm"></div>
+                <div className="h-5 w-10 bg-white/30 rounded-sm"></div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* --- COPYRIGHT BAR (Thêm mới để kết thúc footer đẹp hơn) --- */}
+        <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <p>&copy; 2024 RealEstate. All rights reserved.</p>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-white transition">
+              Điều khoản
+            </a>
+            <a href="#" className="hover:text-white transition">
+              Bảo mật
+            </a>
           </div>
         </div>
       </div>
