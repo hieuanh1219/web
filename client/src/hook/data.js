@@ -197,21 +197,22 @@ export const MOCK = {
       // 1. Căn hộ bán
       prop_001: {
         id: "prop_001",
-        title:
-          "CĂN HỘ MASTERI THẢO ĐIỀN, NỘI THẤT VIEW SÔNG",
-        slug: "can-ho-3pn-masteri-thao-dien-full-noi-that-view-song-001",
+        title: "Simona Heights Quy Nhơn",
+        slug: "simona-heights-quy-nhon",
         description: `
-          BÁN CĂN HỘ 3 PHÒNG NGỦ MASTERI THẢO ĐIỀN - TẦM NHÌN SÔNG SÀI GÒN TUYỆT ĐẸP
+         SIMONA HEIGHTS BIỂU TƯỢNG SỐNG SANG GIỮA TRUNG TÂM QUY NHƠN
 
-Cần tìm chủ nhân mới cho căn hộ cao cấp tại tháp T2, Masteri Thảo Điền. Căn hộ có diện tích 92.5m2, được thiết kế 3 phòng ngủ và 2 WC, tối ưu hóa công năng sử dụng cho gia đình đa thế hệ.
+Simona Heights là dự án căn hộ hạng sang nổi bật bậc nhất tại trung tâm TP. Quy Nhơn, được phát triển bởi Công ty TNHH Đầu tư Xây dựng Phú Mỹ Quy Nhơn, chủ đầu tư tâm huyết với định hướng kiến tạo không gian sống đẳng cấp, bền vững và gia tăng giá trị lâu dài cho cư dân.
 
-Điểm đắt giá nhất của căn hộ chính là vị trí tầng cao với tầm nhìn trực diện ra sông Sài Gòn. Gia chủ có thể tận hưởng không gian sống trong lành, thoáng đãng và ngắm nhìn khung cảnh thành phố lung linh về đêm ngay tại ban công nhà mình.
+Dự án tọa lạc tại số 145A Trần Hưng Đạo, phường Thị Nại, TP. Quy Nhơn, tỉnh Bình Định, một trong những trục đường huyết mạch, kết nối nhanh chóng đến trung tâm hành chính, khu thương mại, trường học, bệnh viện và các điểm du lịch biển nổi tiếng. Vị trí này không chỉ thuận tiện an cư mà còn sở hữu tiềm năng tăng giá vượt trội theo sự phát triển mạnh mẽ của Quy Nhơn trong tương lai.
 
-Về nội thất, chủ nhà đã đầu tư mạnh tay với toàn bộ trang thiết bị nhập khẩu từ Ý. Từ bộ sofa da thật tại phòng khách, bàn ăn mặt đá sang trọng cho đến hệ thống bếp Bosch hiện đại đều được chọn lọc kỹ lưỡng. Căn hộ đang trong tình trạng hoàn hảo, sẵn sàng chào đón cư dân mới dọn vào ở ngay mà không cần sửa chữa thêm.
+Simona Heights được xây dựng trên quỹ đất rộng 7.000m², với mật độ xây dựng chỉ 45%, đảm bảo không gian sống thông thoáng, hài hòa giữa kiến trúc hiện đại và mảng xanh thiên nhiên. Dự án gồm 02 tòa tháp cao 29 tầng nổi và 02 tầng hầm, được thiết kế tối ưu công năng, tầm nhìn rộng mở và ánh sáng tự nhiên cho từng căn hộ.
 
-Cư dân tại đây được thừa hưởng trọn vẹn hệ sinh thái tiện ích đẳng cấp của khu Thảo Điền: mua sắm tại Vincom Mega Mall ngay dưới chân tòa nhà, sử dụng hồ bơi và phòng Gym miễn phí. Đặc biệt, việc kết nối giao thông vô cùng thuận lợi nhờ nhà ga Metro An Phú nằm ngay mặt tiền dự án.
+Sản phẩm tại Simona Heights đa dạng với 626 căn hộ hạng sang. Một trong những ưu điểm nổi bật của dự án là pháp lý SỞ HỮU LÂU DÀI, mang lại sự an tâm tuyệt đối cho khách hàng mua để ở lẫn đầu tư tích sản bền vững.
 
-Pháp lý căn hộ hoàn chỉnh, đã có sổ hồng riêng. Giá bán mong muốn là 6.5 tỷ đồng. Gia chủ rất thiện chí bán và sẵn sàng thương lượng mức giá tốt nhất cho khách hàng thanh toán nhanh.
+Dự kiến bàn giao vào Quý IV/2026, Simona Heights hứa hẹn trở thành cộng đồng cư dân văn minh, hiện đại, nơi hội tụ phong cách sống thượng lưu, tiện nghi và giá trị gia tăng theo thời gian.
+
+Simona Heights không chỉ là nơi an cư, mà còn là tài sản đầu tư thông minh tại trung tâm thành phố biển Quy Nhơn đầy tiềm năng.
         `,
         transactionType: "SALE",
         status: "PUBLISHED",
@@ -228,7 +229,8 @@ Pháp lý căn hộ hoàn chỉnh, đã có sổ hồng riêng. Giá bán mong m
         floors: null,
         frontage: null,
         roadWidth: null,
-        address: "159 Xa lộ Hà Nội, P. Thảo Điền, TP. Thủ Đức",
+        address:
+          "Ngã tư vàng Trần Hưng Đạo, Trần Bình Trọng, ngay trung tâm Quy Nhơn",
         latitude: "10.8031000",
         longitude: "106.7317000",
         metaTitle: "Bán căn hộ 3PN Masteri Thảo Điền",
@@ -1023,101 +1025,35 @@ Pháp lý căn hộ hoàn chỉnh, đã có sổ hồng riêng. Giá bán mong m
       },
     },
 
-    // =================
-    // CHILD TABLES (1-n) - Khớp model PropertyImage, PropertyMedia, PropertyFeature
-    // =================
-    // propertyImages: {
-    //   pimg_001_1: {
-    //     id: "pimg_001_1",
-    //     propertyId: "prop_001",
-    //     url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
-    //     alt: "PK",
-    //     sortOrder: 1,
-    //   },
-
-    //   pimg_002_1: {
-    //     id: "pimg_002_1",
-    //     propertyId: "prop_002",
-    //     url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
-    //     alt: "Living Room",
-    //     sortOrder: 1,
-    //   },
-    //   pimg_002_2: {
-    //     id: "pimg_002_2",
-    //     propertyId: "prop_002",
-    //     url: "https://images.example.com/prop002/2.jpg",
-    //     alt: "Bedroom",
-    //     sortOrder: 2,
-    //   },
-
-    //   pimg_003_1: {
-    //     id: "pimg_003_1",
-    //     propertyId: "prop_003",
-    //     url: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800",
-    //     alt: "Đất thực tế",
-    //     sortOrder: 1,
-    //   },
-
-    //   pimg_004_1: {
-    //     id: "pimg_004_1",
-    //     propertyId: "prop_004",
-    //     url: "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800",
-    //     alt: "Mặt tiền",
-    //     sortOrder: 1,
-    //   },
-
-    //   pimg_005_1: {
-    //     id: "pimg_005_1",
-    //     propertyId: "prop_005",
-    //     url: "https://images.unsplash.com/photo-1613490493576-2f50331579aa?w=800",
-    //     alt: "Mặt tiền biệt thự",
-    //     sortOrder: 1,
-    //   },
-    //   pimg_005_2: {
-    //     id: "pimg_005_2",
-    //     propertyId: "prop_005",
-    //     url: "https://images.example.com/prop005/2.jpg",
-    //     alt: "Sân vườn",
-    //     sortOrder: 2,
-    //   },
-
-    //   pimg_008_1: {
-    //     id: "pimg_008_1",
-    //     propertyId: "prop_008",
-    //     url: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800",
-    //     alt: "Cổng kho",
-    //     sortOrder: 1,
-    //   },
-    // },
     propertyImages: {
       // --- PROP 001 (Căn hộ) ---
       pimg_001_1: {
         id: "pimg_001_1",
         propertyId: "prop_001",
         sortOrder: 1,
-        url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
-        alt: "Phòng khách hiện đại",
+        url: "https://qmp.vn/wp-content/uploads/2025/02/Black-Green-Organic-Illustrative-Nature-Living-Logo-Anh-bia-Facebook-1-2048x1152.png",
+        alt: "Mặt bằng điển hình Simona Heights được thiết kế khoa học, tối ưu công năng sử dụng và không gian sống. Các căn hộ được bố trí hợp lý, đón gió và ánh sáng tự nhiên tối đa, đảm bảo sự thông thoáng và riêng tư cho từng gia đình. Hành lang rộng rãi, thang máy bố trí thuận tiện giúp kết nối nhanh chóng, mang đến trải nghiệm sống tiện nghi, hiện đại và đẳng cấp cho cư dân.",
       },
       pimg_001_2: {
         id: "pimg_001_2",
         propertyId: "prop_001",
         sortOrder: 2,
-        url: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800",
-        alt: "Khu vực bếp",
+        url: "https://qmp.vn/wp-content/uploads/2025/02/can-1pn-du-an-simona-height-768x434.png",
+        alt: "Căn hộ 1 phòng ngủ Simona Heights được thiết kế thông minh, tối ưu diện tích sử dụng với không gian sinh hoạt liên thông phòng khách – bếp, tạo cảm giác rộng rãi và hiện đại. Phòng ngủ riêng tư, đón ánh sáng tự nhiên, phù hợp cho người độc thân, chuyên gia hoặc nhà đầu tư tìm kiếm sản phẩm linh hoạt, dễ cho thuê và giàu tiềm năng sinh lời.",
       },
       pimg_001_3: {
         id: "pimg_001_3",
         propertyId: "prop_001",
         sortOrder: 3,
-        url: "https://images.unsplash.com/photo-1616594031246-8595dc097287?w=800",
-        alt: "Phòng ngủ Master",
+        url: "https://quangminhproperty.com/wp-content/uploads/2025/02/can-2-pn-simona-height.png",
+        alt: "Căn hộ 2 phòng ngủ Simona Heights sở hữu thiết kế tối ưu công năng, không gian sinh hoạt chung rộng rãi kết nối hài hòa phòng khách, khu bếp và ban công, mang đến sự thông thoáng và tiện nghi. Hai phòng ngủ được bố trí tách biệt, đảm bảo riêng tư, trong đó phòng ngủ master có toilet riêng, phù hợp cho gia đình trẻ hoặc khách hàng tìm kiếm không gian sống cân bằng giữa tiện nghi và đẳng cấp.",
       },
       pimg_001_4: {
         id: "pimg_001_4",
         propertyId: "prop_001",
         sortOrder: 4,
-        url: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800",
-        alt: "Phòng tắm kính",
+        url: "https://qmp.vn/wp-content/uploads/2025/02/can-ho-3pn-chung-cu-simona-height-768x434.png",
+        alt: "Căn hộ 3 phòng ngủ Simona Heights được thiết kế rộng rãi, sang trọng, đáp ứng trọn vẹn nhu cầu sinh hoạt của gia đình đa thế hệ. Không gian phòng khách kết nối bếp và khu ăn uống tạo sự thông thoáng, trong khi các phòng ngủ được bố trí hợp lý, đảm bảo riêng tư và tiện nghi, đặc biệt phòng ngủ master sở hữu toilet riêng. Đây là lựa chọn lý tưởng cho khách hàng đề cao không gian sống đẳng cấp, thoải mái và giá trị bền vững theo thời gian.",
       },
 
       // --- PROP 002 (Căn hộ cho thuê) ---
@@ -1546,7 +1482,7 @@ Pháp lý căn hộ hoàn chỉnh, đã có sổ hồng riêng. Giá bán mong m
   // =================
   route: {
     bySlug: {
-      "can-ho-3pn-masteri-thao-dien-full-noi-that-view-song-001": "prop_001",
+      "simona-heights-quy-nhon": "prop_001",
       "cho-thue-landmark-81-2pn-view-cong-vien": "prop_002",
       "dat-nen-vsip-2-binh-duong-lo-goc": "prop_003",
       "nha-pho-phu-my-hung-quan-7": "prop_004",
