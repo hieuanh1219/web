@@ -1,9 +1,44 @@
 @font-face {
-    font-family:'tieude' ;
-    src: url('./assets/fonts/CormorantSC-Light.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+  font-family: "tieude";
+  src: url("./assets/fonts/CormorantSC-Light.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
 }
+@font-face {
+  font-family: "Mulish";
+  src: url("./assets/fonts/mulish/Mulish-Regular.ttf") format("truetype");
+  font-style: normal;
+}
+@font-face {
+  font-family: "Mulish";
+  src: url("./assets/fonts/mulish/Mulish-Bold.ttf") format("truetype");
+
+  font-style: bold;
+}
+@font-face {
+  font-family: "Mulish";
+  src: url("./assets/fonts/mulish/Mulish-ExtraLight.ttf") format("truetype");
+  font-style: extralight;
+}
+@font-face {
+  font-family: "Mulish";
+  src: url("./assets/fonts/mulish/Mulish-Light.ttf") format("truetype");
+
+  font-style: light;
+}
+@font-face {
+  font-family: "Mulish";
+  src: url("./assets/fonts/mulish/Mulish-Medium.ttf") format("truetype");
+
+  font-style: medium;
+}
+@font-face {
+  font-family: "Mulish";
+  src: url("./assets/fonts/mulish/Mulish-SemiBold.ttf") format("truetype");
+
+  font-style: semibold;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -5,6 +5,7 @@ export default {
     extend: {
       fontFamily: {
         sangtrong: ['tieude'],
+        noidung: ['Mulish'],
       },
       colors: {
         "xanh-than": "#0E2038"
